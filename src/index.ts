@@ -1,4 +1,12 @@
-import { AnimationThreadProps, AnimationThreadResponse } from "./_types/main";
+import {
+  AnimationThreadOptions,
+  AnimationThreadProps,
+  AnimationThreadResponse,
+} from "./_types/main";
+
+export const defaults = {
+  limit: Infinity,
+};
 
 /**
  * Assigns the defined handler within the requestAnimationFrame method that is
@@ -17,13 +25,21 @@ import { AnimationThreadProps, AnimationThreadResponse } from "./_types/main";
 export function requestAnimationThread(
   handler: (props: AnimationThreadProps) => void,
   fps: number,
-  limit = Infinity
+  options?: number | AnimationThreadOptions
 ) {
   let fpsInterval: number = 1000 / (parseInt(String(fps)) || 30);
   let previousTimestamp: number = performance.now() || Date.now();
   let keyframe: any;
   let tick = 0;
   let tock = 0;
+  const { limit } = {
+    ...defaults,
+    ...(options instanceof Object
+      ? options || {}
+      : { limit: options || defaults.limit }),
+  };
+
+  console.log(options, limit, defaults);
 
   return new Promise<AnimationThreadResponse>((stop) => {
     // i = interval, l = limit
@@ -68,7 +84,7 @@ export function requestAnimationThread(
             tock,
           });
         }
-      })(fps, isNaN(limit) ? Infinity : limit);
+      })(fps, isNaN(limit) ? Infinity : limit * fps);
 
     keyframe = requestAnimationFrame(fn);
   }).finally(() => keyframe && cancelAnimationFrame(keyframe));

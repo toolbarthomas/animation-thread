@@ -25,6 +25,13 @@ export type AnimationThreadProps = {
 };
 
 /**
+ * Optional options to use when creating a new animation thread.
+ */
+export type AnimationThreadOptions = {
+  limit: number;
+};
+
+/**
  * Expected Promise result for the created AnimationThread.
  */
 export type AnimationThreadResponse = {

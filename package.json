@@ -9,6 +9,7 @@
   "main": "dist/index.js",
   "scripts": {
     "test": "tsc --noEmit",
+    "dev": "node node/esbuild.main.mjs -s",
     "build:esm": "node node/esbuild.main.mjs && node node/esbuild.main.mjs -m",
     "build:cjs": "node node/esbuild.main.mjs --format=cjs && node node/esbuild.main.mjs --format=cjs -m"
   },
