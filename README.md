@@ -64,6 +64,15 @@ const thread = requestAnimationFrame(() => {...}, 30); // See 'Readme Interface'
 
 ```
 
+| Parameter                      | Description                                                                                         |
+| ------------------------------ | --------------------------------------------------------------------------------------------------- |
+| [0]Function                    | The defined handler that will be assigned to the animation thread.                                  |
+| [1]number                      | The defined handler that will be assigned to the animation thread.                                  |
+| [2]number                      | The defined tock limit to use (defaults to Infinity).                                               |
+| [2]object[limit] => number     | The expected limit property.                                                                        |
+| [2]object[relative] => boolean | Adjusts the limit to a relative value in order to run more or less repaints after a frame throttle. |
+
+
 The assigned handler will be called directly with the defined properties, keep in mind that the defined FPS will not run higher than your device's screen refresh rate.
 
 ## Thread API
