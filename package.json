@@ -1,0 +1,38 @@
+{
+  "devDependencies": {
+    "esbuild": "^0.19.2",
+    "typescript": "^5.1.6"
+  },
+  "name": "@toolbarthomas/animation-thread",
+  "version": "0.1.0",
+  "description": "Throttleable requestAnimationFrame utility",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "tsc --noEmit",
+    "build:esm": "node node/esbuild.main.mjs && node node/esbuild.main.mjs -m",
+    "build:cjs": "node node/esbuild.main.mjs --format=cjs && node node/esbuild.main.mjs --format=cjs -m"
+  },
+  "files": [
+    "dist/",
+    "index.ts",
+    "src/",
+    "tsconfig.json"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/toolbarthomas/animation-thread.git"
+  },
+  "keywords": [
+    "requestAnimationFrame",
+    "fps",
+    "loop",
+    "throttle",
+    "setTimeout"
+  ],
+  "author": "Thomas van der Velde <contact@toolbarthomas.net>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/toolbarthomas/animation-thread/issues"
+  },
+  "homepage": "https://github.com/toolbarthomas/animation-thread#readme"
+}

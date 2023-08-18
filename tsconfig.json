@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "declaration": true,
+    "lib": [
+      "dom",
+      "es2017",
+      "esnext"
+    ],
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "moduleResolution": "node",
+    "downlevelIteration": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "outDir": "",
+    "paths": {},
+    "plugins": [
+      {
+        "name": "ts-lit-plugin",
+        "strict": true
+      }
+    ],
+    "rootDir": "./src",
+    "strict": true,
+    "types": [],
+    "typeRoots": [
+      "_types/",
+      "node_modules/@types"
+    ],
+  },
+  "include": [
+    "./src/*.ts"
+  ],
+  "exclude": []
+}
