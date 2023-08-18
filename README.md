@@ -1,3 +1,5 @@
+**Note: ** Package has not yet been published and the documentation is not yet final.
+
 # Animation Thread
 
 Animation Thread is a small `requestAnimationFrame` wrapper with configurable FPS and optional lifecycle.
