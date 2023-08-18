@@ -4,9 +4,20 @@ import {
   AnimationThreadResponse,
 } from "./_types/main";
 
-export const defaults = {
+/**
+ * Defines the default options when creating a new animation thread.
+ */
+export const defaults: AnimationThreadOptions = {
   limit: Infinity,
 };
+
+/**
+ * Converts the given FPS value to a valid timestamp integer.
+ *
+ * @param value The value to convert.
+ */
+export const defineFPSInterval = (value: number) =>
+  1000 / (parseInt(String(value)) || 30);
 
 /**
  * Assigns the defined handler within the requestAnimationFrame method that is
@@ -27,7 +38,7 @@ export function requestAnimationThread(
   fps: number,
   options?: number | AnimationThreadOptions
 ) {
-  let fpsInterval: number = 1000 / (parseInt(String(fps)) || 30);
+  let fpsInterval: number = defineFPSInterval(fps);
   let previousTimestamp: number = performance.now() || Date.now();
   let keyframe: any;
   let tick = 0;
@@ -35,16 +46,14 @@ export function requestAnimationThread(
   const { limit } = {
     ...defaults,
     ...(options instanceof Object
-      ? options || {}
+      ? options || defaults
       : { limit: options || defaults.limit }),
   };
 
-  console.log(options, limit, defaults);
-
-  return new Promise<AnimationThreadResponse>((stop) => {
+  const thread = new Promise<AnimationThreadResponse>((stop) => {
     // i = interval, l = limit
-    const fn = ((i: number, l?: number) =>
-      function (timestamp: number) {
+    const fn = (function (i: number, l?: number) {
+      return function (timestamp: number) {
         if (typeof l === "undefined" || l > 0) {
           keyframe !== undefined && cancelAnimationFrame(keyframe);
           keyframe = requestAnimationFrame(fn);
@@ -84,8 +93,19 @@ export function requestAnimationThread(
             tock,
           });
         }
-      })(fps, isNaN(limit) ? Infinity : limit * fps);
+      };
+    })(fps, isNaN(limit) ? Infinity : limit * fps);
 
     keyframe = requestAnimationFrame(fn);
-  }).finally(() => keyframe && cancelAnimationFrame(keyframe));
+  });
+
+  const throttle = (value: number) =>
+    (fpsInterval = defineFPSInterval(value || fps));
+
+  // Stop the thread when done.
+  thread.finally(function () {
+    keyframe && cancelAnimationFrame(keyframe);
+  });
+
+  return { thread, throttle };
 }
