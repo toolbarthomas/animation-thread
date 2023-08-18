@@ -1,4 +1,4 @@
-**Note: ** Package has not yet been published and the documentation is not yet final.
+**Note:** Package has not yet been published and the documentation is not yet final.
 
 # Animation Thread
 
