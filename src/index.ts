@@ -53,6 +53,8 @@ export function requestAnimationThread(
       : { limit: options || defaults.limit }),
   };
 
+  const _fps = () => parseInt(String(fpsCache)) || fps;
+
   const request = new Promise<AnimationThreadResponse>((stop) => {
     // i = interval, l = limit
     const fn = (function (i: number, l?: number) {
@@ -101,12 +103,10 @@ export function requestAnimationThread(
           });
         }
       };
-    })(fps, isNaN(limit) ? Infinity : limit * fps);
+    })(_fps(), isNaN(limit) ? Infinity : limit * _fps());
 
     keyframe = requestAnimationFrame(fn);
   });
-
-  const _fps = () => parseInt(String(fpsCache)) || fps;
 
   // Throttles the current FPS & interval value from the valid number value.
   const throttle = (value: any) => {
@@ -141,6 +141,9 @@ export function requestAnimationThread(
 
     // The initial Promise Object that should control the animation context.
     request,
+
+    // Restores to the initial defined FPS value.
+    restore: () => throttle(fps),
 
     // Resumes the current thread to the previous throttled value or the
     // initial FPS value prop.

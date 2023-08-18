@@ -71,16 +71,22 @@
       ten.innerText = "10";
       ten.onclick = () => console.log(thread.throttle(10));
 
+      const restore = document.createElement('button')
+      restore.innerText = "Restore";
+      restore.onclick = () => console.log(thread.restore());
+
       document.body.appendChild(pause);
       document.body.appendChild(resume);
       document.body.appendChild(resume30);
       document.body.appendChild(fpsInfo);
       document.body.appendChild(intervalInfo);
       document.body.appendChild(ten);
+      document.body.appendChild(restore);
+
 
     }
 
-    create(1);
+    create(15);
 
   </script>
 </head>
