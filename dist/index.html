@@ -36,12 +36,10 @@
         value += 20;
         element.innerText = thread.fps()
 
-        console.log(response.tock)
-
-        // if (value > 600) {
-        //   value = 0
-        // }
-      }, fps, 5)
+        if (value > 600) {
+          value = 0
+        }
+      }, fps, 100)
 
       const pause = document.createElement('button')
       pause.innerText = "Pause";
@@ -89,6 +87,8 @@
     }
 
     create(60);
+    create(60);
+
 
   </script>
 </head>
