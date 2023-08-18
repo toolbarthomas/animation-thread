@@ -51,7 +51,7 @@ import { requestAnimationThread } from "@toolbarthomas/animation-thread/dist/ind
 
 ```
 
-**Note:** Keep in mind that the behaviour of this module can currently give unexpected results when using outside the browser context. A setInterval fallback could be implemented within the future.
+**Note:** Keep in mind that the behavior of this module can currently give unexpected results when using outside the browser context. A setInterval fallback could be implemented within the future.
 
 ## Usage
 
@@ -93,6 +93,17 @@ requestAnimationThread((props) => {
 
 ```
 
+The amount of requested animation frames is always defined within the initial function usage, this means that the amount of render updates does not change when an animation thread is (de)throttled. The thread just runs faster or slower depending of the intial defined FPS value, but the result will be the same if all logic is defined within the handler context.
+
+```js
+ // Runs 1 time every second for 1000 times/tocks...
+const t = requestAnimationThread(..., 1, 1000);
+
+// A few moments later...
+t.throttle(60); // Run the thread faster at 60 times every second, with the remaining tocks.
+
+```
+
 | Property          | Type     | Description                                                          |
 | ----------------- | -------- | -------------------------------------------------------------------- |
 | first             | boolean  | Indicates if the handler is running as the first frame.              |
@@ -101,7 +112,7 @@ requestAnimationThread((props) => {
 | stop              | function | Resolves the created Promise and closes the animation thread.        |
 | timestamp         | number   | The timestamp from the running requestAnimationFrame context.        |
 | tick              | number   | The context a handler is called for each frame within a single tock. |
-| tock              | number   | The iteration value in seconds.                                      |
+| tock              | number   | The iteration value of the defined limit.                            |
 
 ## Typescript support
 

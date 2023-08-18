@@ -30,16 +30,18 @@
       let value = 0;
       let paused = false;
 
-      const thread = requestAnimationThread(() =>
+      const thread = requestAnimationThread((response) =>
       {
         element.style.marginLeft = `${value}px`
         value += 20;
         element.innerText = thread.fps()
 
-        if (value > 600) {
-          value = 0
-        }
-      }, fps)
+        console.log(response.tock)
+
+        // if (value > 600) {
+        //   value = 0
+        // }
+      }, fps, 5)
 
       const pause = document.createElement('button')
       pause.innerText = "Pause";
@@ -86,7 +88,7 @@
 
     }
 
-    create(15);
+    create(60);
 
   </script>
 </head>

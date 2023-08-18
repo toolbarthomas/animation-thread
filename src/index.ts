@@ -59,21 +59,19 @@ export function requestAnimationThread(
     // i = interval, l = limit
     const fn = (function (i: number, l?: number) {
       return function (timestamp: number) {
-        if (typeof l === "undefined" || l > 0) {
+        const ratio = fpsCache / fps;
+
+        if (typeof l === "undefined" || l * ratio > 0) {
           keyframe !== undefined && cancelAnimationFrame(keyframe);
           keyframe = requestAnimationFrame(fn);
 
           const elapsed = timestamp - (previousTimestamp || 0);
 
-          // if (fpsInterval && !elapsed) {
-          //   elapsed = timestamp - fpsInterval;
-          // }
-
           try {
             if (fpsInterval && elapsed > fpsInterval) {
               handler({
                 first: tick <= 0,
-                last: tick >= limit,
+                last: tick >= l * ratio * _fps(),
                 previousTimestamp,
                 stop,
                 tick,
