@@ -8,6 +8,7 @@ import {
  * Defines the default options when creating a new animation thread.
  */
 export const defaults = {
+  relative: false,
   limit: Infinity,
   fps: 30,
 };
@@ -46,7 +47,7 @@ export function requestAnimationThread(
   let keyframe: any;
   let tick = 0;
   let tock = 0;
-  const { limit } = {
+  const { limit, relative } = {
     ...defaults,
     ...(options instanceof Object
       ? options || defaults
@@ -59,9 +60,7 @@ export function requestAnimationThread(
     // i = interval, l = limit
     const fn = (function (i: number, l?: number) {
       return function (timestamp: number) {
-        const ratio = fpsCache / fps;
-
-        if (typeof l === "undefined" || l * ratio > 0) {
+        if (typeof l === "undefined" || l > 0) {
           keyframe !== undefined && cancelAnimationFrame(keyframe);
           keyframe = requestAnimationFrame(fn);
 
@@ -71,7 +70,7 @@ export function requestAnimationThread(
             if (fpsInterval && elapsed > fpsInterval) {
               handler({
                 first: tick <= 0,
-                last: tick >= l * ratio * _fps(),
+                last: l === Infinity ? false : tick >= (l || 0) * _fps(),
                 previousTimestamp,
                 stop,
                 tick,
@@ -79,7 +78,12 @@ export function requestAnimationThread(
                 tock,
               });
 
-              l && l--;
+              if (relative && l) {
+                l -= 1 * (fps / fpsCache);
+              } else if (l) {
+                l--;
+              }
+
               tick += 1;
               tock = Math.round(tick / fps);
               previousTimestamp = timestamp - (elapsed % fpsInterval);
@@ -119,7 +123,7 @@ export function requestAnimationThread(
     // Unref the initial thread since we cannot restore it anymore at this point.
     // Keep in mind that
     Object.keys(thread).forEach((key) => {
-      delete thread[key];
+      delete (thread as any)[key];
     });
 
     keyframe && cancelAnimationFrame(keyframe);

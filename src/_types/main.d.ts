@@ -28,7 +28,11 @@ export type AnimationThreadProps = {
  * Optional options to use when creating a new animation thread.
  */
 export type AnimationThreadOptions = {
+  // The maximum amount of tocks to run.
   limit: number;
+
+  // Make the limit value relative in order to use the initial defined tock limit.
+  relative?: boolean;
 };
 
 /**
