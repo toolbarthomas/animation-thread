@@ -1,0 +1,21 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>requestAnimationThread</title>
+
+  <script type="module">
+    import { requestAnimationThread } from "./index.js";
+
+    requestAnimationThread(() =>
+    {
+      console.log("Each second 5 times");
+    }, 1)
+  </script>
+</head>
+
+<body>
+
+</body>
+
+</html>
