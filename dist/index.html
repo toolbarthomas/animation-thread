@@ -10,6 +10,10 @@
       height: 100px;
       border: solid 6px white;
       background-color: red;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 300%;
     }
   </style>
 
@@ -21,26 +25,62 @@
 
       const element = document.createElement('div');
       element.classList.add('block');
+      element.innerText = fps;
       document.body.append(element);
       let value = 0;
+      let paused = false;
 
-      const t = requestAnimationThread(() =>
+      const thread = requestAnimationThread(() =>
       {
         element.style.marginLeft = `${value}px`
-        value += 10;
-        if (value > 300) {
-          value = 0;
+        value += 20;
+        element.innerText = thread.fps()
+
+        if (value > 600) {
+          value = 0
         }
       }, fps)
+
+      const pause = document.createElement('button')
+      pause.innerText = "Pause";
+      pause.onclick = () =>
+      {
+        element.innerText = 0
+        thread.pause()
+      };
+      const resume = document.createElement('button')
+      resume.innerText = "Resume";
+      resume.onclick = () => thread.resume();
+
+
+
+      const resume30 = document.createElement('button')
+      resume30.innerText = "Resume to 30";
+      resume30.onclick = () => thread.resume(30);
+
+      const fpsInfo = document.createElement('button')
+      fpsInfo.innerText = "FPS";
+      fpsInfo.onclick = () => console.log(thread.fps());
+
+      const intervalInfo = document.createElement('button')
+      intervalInfo.innerText = "Interval";
+      intervalInfo.onclick = () => console.log(thread.interval());
+
+
+      const ten = document.createElement('button')
+      ten.innerText = "10";
+      ten.onclick = () => console.log(thread.throttle(10));
+
+      document.body.appendChild(pause);
+      document.body.appendChild(resume);
+      document.body.appendChild(resume30);
+      document.body.appendChild(fpsInfo);
+      document.body.appendChild(intervalInfo);
+      document.body.appendChild(ten);
+
     }
 
     create(1);
-    create(2);
-    create(10);
-    create(30);
-    create(60);
-    // Should be same as 60
-    create(90);
 
   </script>
 </head>

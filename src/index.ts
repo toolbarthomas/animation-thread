@@ -7,8 +7,9 @@ import {
 /**
  * Defines the default options when creating a new animation thread.
  */
-export const defaults: AnimationThreadOptions = {
+export const defaults = {
   limit: Infinity,
+  fps: 30,
 };
 
 /**
@@ -16,15 +17,16 @@ export const defaults: AnimationThreadOptions = {
  *
  * @param value The value to convert.
  */
-export const defineFPSInterval = (value: number) =>
-  1000 / (parseInt(String(value)) || 30);
+export const fpsToInterval = (value: number) => {
+  return 1000 / parseInt(String(value != null ? value : defaults.fps));
+};
 
 /**
  * Assigns the defined handler within the requestAnimationFrame method that is
  * throttled to the defined FPS limit instead of each screen refresh.
  * A requested animation thread will loop by default and can be stopped within
  * the assigned handler property. A thread can also run for a certain amount if
- * the limit is a valid interger.
+ * the limit is a valid number.
  *
  * @param handler The handler to assign.
  * @param fps Call the assigned handler x times per second, cannot be higher
@@ -38,7 +40,8 @@ export function requestAnimationThread(
   fps: number,
   options?: number | AnimationThreadOptions
 ) {
-  let fpsInterval: number = defineFPSInterval(fps);
+  let fpsCache: number = fps;
+  let fpsInterval: number = fpsToInterval(fps);
   let previousTimestamp: number = performance.now() || Date.now();
   let keyframe: any;
   let tick = 0;
@@ -50,7 +53,7 @@ export function requestAnimationThread(
       : { limit: options || defaults.limit }),
   };
 
-  const thread = new Promise<AnimationThreadResponse>((stop) => {
+  const request = new Promise<AnimationThreadResponse>((stop) => {
     // i = interval, l = limit
     const fn = (function (i: number, l?: number) {
       return function (timestamp: number) {
@@ -58,10 +61,14 @@ export function requestAnimationThread(
           keyframe !== undefined && cancelAnimationFrame(keyframe);
           keyframe = requestAnimationFrame(fn);
 
-          const elapsed = timestamp - previousTimestamp;
+          const elapsed = timestamp - (previousTimestamp || 0);
+
+          // if (fpsInterval && !elapsed) {
+          //   elapsed = timestamp - fpsInterval;
+          // }
 
           try {
-            if (elapsed > fpsInterval) {
+            if (fpsInterval && elapsed > fpsInterval) {
               handler({
                 first: tick <= 0,
                 last: tick >= limit,
@@ -99,13 +106,50 @@ export function requestAnimationThread(
     keyframe = requestAnimationFrame(fn);
   });
 
-  const throttle = (value: number) =>
-    (fpsInterval = defineFPSInterval(value || fps));
+  const _fps = () => parseInt(String(fpsCache)) || fps;
+
+  // Throttles the current FPS & interval value from the valid number value.
+  const throttle = (value: any) => {
+    fpsCache = parseInt(value) || _fps();
+    fpsInterval = value ? fpsToInterval(value) : 0;
+
+    return fpsInterval;
+  };
 
   // Stop the thread when done.
-  thread.finally(function () {
+  request.finally(function () {
+    // Unref the initial thread since we cannot restore it anymore at this point.
+    // Keep in mind that
+    Object.keys(thread).forEach((key) => {
+      delete thread[key];
+    });
+
     keyframe && cancelAnimationFrame(keyframe);
   });
 
-  return { thread, throttle };
+  // Defines the actual interface to control the created thread.
+  // The thread should be removed
+  const thread = {
+    // Returns the running FPS value.
+    fps: () => (fpsInterval ? fpsCache : 0),
+
+    // Returns the running FPS interval value.
+    interval: () => fpsInterval,
+
+    // Pause the running thread and prevent any calls to the defined handler.
+    pause: () => throttle(0),
+
+    // The initial Promise Object that should control the animation context.
+    request,
+
+    // Resumes the current thread to the previous throttled value or the
+    // initial FPS value prop.
+    resume: (value?: number) =>
+      throttle(value || (fpsCache != null ? fpsCache : fps)),
+
+    // Throttles the running thread.
+    throttle,
+  };
+
+  return thread;
 }
