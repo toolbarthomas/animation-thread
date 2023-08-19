@@ -68,9 +68,8 @@ export function requestAnimationThread(
     const fn = (function (_: number, index?: number) {
       return function (timestamp: number) {
         if (typeof index === "undefined" || index > 0) {
-          // Ensures the animation is stopped within the estimated animation
-          // duration that was initially defined within the method call.
-          if (fps !== _fps() && tick >= limit * fps) {
+          // Prevents unwanted loops for throttled animation threads.
+          if (strict && fps !== _fps() && index >= limit * fps) {
             index = 0;
           }
 
@@ -135,8 +134,10 @@ export function requestAnimationThread(
                 }
 
                 // Reset the index to stop the current cycle since all relative
-                // frames should be rendered for the running thread
-                if (strict && fps * limit < processed) {
+                // frames should be rendered for the running thread;
+                // Secondary failsafe to stop the thread when the moment is
+                // already within the past.
+                if (strict && fps !== _fps() && fps * limit < processed) {
                   index = 0;
                 }
 
@@ -159,10 +160,6 @@ export function requestAnimationThread(
                   );
 
                   const delta = index - fpsCache / fps;
-
-                  // if (lag - delta * ratio > 0) {
-                  //   lag -= delta * ratio;
-                  // }
 
                   if (multiplier >= 2) {
                     index -= treshold;
