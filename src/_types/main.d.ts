@@ -5,8 +5,15 @@ export type AnimationThreadProps = {
   // TRUE when the first handler is called.
   first: boolean;
 
+  // Optional context value to resolve any timing issues after a throttle.
+  lag?: number;
+
   // TRUE when the last handler is called.
   last: boolean;
+
+  // Defines the ratio of the current FPS compared to the initial defined
+  // FPS value.
+  multiplier: number;
 
   // The dynamic timestamp of the previous tick based of the running FPS.
   previousTimestamp: number;
@@ -32,15 +39,20 @@ export type AnimationThreadOptions = {
   limit: number;
 
   // Make the limit value relative in order to use the initial defined tock limit.
-  relative?: boolean;
+  strict?: boolean;
 };
 
 /**
  * Expected Promise result for the created AnimationThread.
  */
 export type AnimationThreadResponse = {
+  average?: AnimationThreadProps["multiplier"];
+  duration: number;
   first: AnimationThreadProps["first"];
+  index: number;
+  lag?: AnimationThreadProps["lag"];
   last: AnimationThreadProps["last"];
+  processed: number;
   previousTimestamp: AnimationThreadProps["previousTimestamp"];
   tick: AnimationThreadProps["tick"];
   timestamp: AnimationThreadProps["timestamp"];

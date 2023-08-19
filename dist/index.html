@@ -20,7 +20,7 @@
   <script type="module">
     import { requestAnimationThread } from "./index.js";
 
-    function create(fps)
+    function create(fps, strict)
     {
 
       const element = document.createElement('div');
@@ -36,10 +36,10 @@
         value += 20;
         element.innerText = thread.fps()
 
-        if (value > 600) {
-          value = 0
-        }
-      }, fps, 5)
+        // if (value > 600) {
+        //   value = 0
+        // }
+      }, fps, { limit: 5, strict })
 
       const pause = document.createElement('button')
       pause.innerText = "Pause";
@@ -68,8 +68,8 @@
 
 
       const ten = document.createElement('button')
-      ten.innerText = "10";
-      ten.onclick = () => console.log(thread.throttle(10));
+      ten.innerText = "5";
+      ten.onclick = () => console.log(thread.throttle(5));
 
       const restore = document.createElement('button')
       restore.innerText = "Restore";
@@ -82,12 +82,12 @@
       document.body.appendChild(intervalInfo);
       document.body.appendChild(ten);
       document.body.appendChild(restore);
-
-
     }
 
-    create(60);
-    create(60);
+    create(15);
+    create(15, true);
+
+    // create(60);
 
 
   </script>

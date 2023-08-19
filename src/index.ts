@@ -8,7 +8,7 @@ import {
  * Defines the default options when creating a new animation thread.
  */
 export const defaults = {
-  relative: false,
+  strict: false,
   limit: Infinity,
   fps: 30,
 };
@@ -43,12 +43,14 @@ export function requestAnimationThread(
 ) {
   let fpsCache: number = fps;
   let fpsInterval: number = fpsToInterval(fps);
-  let previousTimestamp: number = performance.now() || Date.now();
+  let previousTimestamp: number = 0;
   let keyframe: any;
   let tick = 0;
   let tock = 0;
-  let updated = 0;
-  const { limit, relative } = {
+  let lag = 0;
+  let offset = 0;
+  let processed = 0;
+  const { limit, strict } = {
     ...defaults,
     ...(options instanceof Object
       ? options || defaults
@@ -56,57 +58,146 @@ export function requestAnimationThread(
   };
 
   const _fps = () => parseInt(String(fpsCache)) || fps;
+  const _now = () => window.performance.now() || Date.now();
+
+  // Times the runtime of the created thread.
+  let start = 0;
+  let end = 0;
 
   const request = new Promise<AnimationThreadResponse>((stop) => {
-    // i = interval, l = limit
-    const fn = (function (i: number, l?: number) {
+    const fn = (function (_: number, index?: number) {
       return function (timestamp: number) {
-        if (typeof l === "undefined" || l > 0) {
-          keyframe !== undefined && cancelAnimationFrame(keyframe);
-          keyframe = requestAnimationFrame(fn);
+        if (typeof index === "undefined" || index > 0) {
+          // Ensures the animation is stopped within the estimated animation
+          // duration that was initially defined within the method call.
+          if (fps !== _fps() && tick >= limit * fps) {
+            index = 0;
+          }
 
-          const elapsed = timestamp - (previousTimestamp || 0);
+          if (keyframe !== undefined) {
+            cancelAnimationFrame(keyframe);
+            keyframe = requestAnimationFrame(fn);
+          }
+
+          // Start the timer on the first frame since the requested frame
+          // can start later.
+          const now = _now();
+          const ratio = fps / fpsCache;
+
+          const elapsed = now - (previousTimestamp || 0);
+
+          if (!start && !previousTimestamp) {
+            start = _now();
+          }
 
           try {
             if (fpsInterval && elapsed > fpsInterval) {
-              handler({
+              offset = elapsed % fpsInterval;
+              lag += elapsed * ratio;
+
+              const multiplier = (1 + offset / fpsInterval) * ratio;
+
+              const props = {
                 first: tick <= 0,
-                last: l === Infinity ? false : tick >= (l || 0) * _fps(),
+                lag,
+                last:
+                  index === Infinity ? false : tick >= (index || 0) * _fps(),
+                multiplier,
                 previousTimestamp,
                 stop,
                 tick,
                 timestamp,
                 tock,
-              });
+              };
 
-              if (updated && relative && l) {
-                // @todo should define offset from initial limit instead.
-                if (fpsCache > updated) {
-                  l = l * (fps / fpsCache) - 1;
-                } else {
-                  l = l / (fps / fpsCache) - 1;
-                }
-                // Offset the updated FPS once.
-                updated = 0;
-              } else if (l) {
-                l--;
-              }
+              // console.log("Handle", props);
+
+              handler(props);
 
               tick += 1;
-              tock = Math.round(tick / fps);
-              previousTimestamp = timestamp - (elapsed % fpsInterval);
+              tock = Math.round(tick / _fps());
+              previousTimestamp = now - offset;
+              lag -= fpsInterval * ratio;
+
+              if (lag && lag > fpsInterval * ratio) {
+                // Adjusts the index length while in strict mode, this ensures
+                // the animation is stopped around the defined multipler
+                // timeline. Keep in mind that some timeshifting is present
+                // when the animation is resolved in strict mode.
+                if (
+                  strict &&
+                  lag >= fpsInterval * ratio &&
+                  ratio % multiplier != 1 &&
+                  index !== undefined
+                ) {
+                  const value = (lag / fpsInterval) * ratio;
+                  index -= Math.ceil(value);
+                }
+
+                // Reset the index to stop the current cycle since all relative
+                // frames should be rendered for the running thread
+                if (strict && fps * limit < processed) {
+                  index = 0;
+                }
+
+                lag = 0;
+              }
+
+              // Adjust the estimated tock value when running in strict mode.
+              // This adjusts the runtime of the current thread with a defined
+              // limit. The defined multiplier will be used to add or subtract
+              // any pending/new frames.
+              //@TODO decide if strict boolean statements should be reversed. current = TRUE
+              if (strict && index !== undefined) {
+                if (
+                  multiplier < 1 ||
+                  multiplier >= 2 ||
+                  elapsed >= fpsInterval * 2
+                ) {
+                  const treshold = Math.round(
+                    elapsed / (fpsInterval * multiplier) || 1
+                  );
+
+                  const delta = index - fpsCache / fps;
+
+                  // if (lag - delta * ratio > 0) {
+                  //   lag -= delta * ratio;
+                  // }
+
+                  if (multiplier >= 2) {
+                    index -= treshold;
+                  } else {
+                    index -= treshold;
+                  }
+                } else if (index) {
+                  index -= 1;
+                }
+              } else if (index) {
+                index -= 1;
+              }
+
+              processed += 1;
+
+              // We use the timestamp instead of _now to ensure we end before
+              // a next requestAnimationFrame request.
+              end = _now();
             }
           } catch (exception) {
             if (exception) {
-              l = 0;
+              index = 0;
               console && console.error(exception);
             }
           }
         } else {
           stop({
+            average: fpsCache / fps, // Will be relative to the final running FPS value.
+            duration: end - start,
             first: tick <= 0,
+            index,
+            lag,
             last: true,
             previousTimestamp,
+            processed,
             tick,
             timestamp,
             tock,
@@ -120,15 +211,13 @@ export function requestAnimationThread(
 
   // Throttles the current FPS & interval value from the valid number value.
   const throttle = (value: any) => {
-    // Mark the current thread as updated in order to adjust the relative tock.
-    // position.
-    updated = fpsCache || 1;
-
     fpsCache = parseInt(value) || _fps();
     fpsInterval = value ? fpsToInterval(value) : 0;
 
     return fpsInterval;
   };
+
+  request.then((r) => console.log("Result:", r, start, end));
 
   // Stop the thread when done.
   request.finally(function () {
@@ -152,6 +241,9 @@ export function requestAnimationThread(
 
     // Pause the running thread and prevent any calls to the defined handler.
     pause: () => throttle(0),
+
+    // The defined behavior for the animation thread.
+    strict,
 
     // The initial Promise Object that should control the animation context.
     request,
