@@ -69,9 +69,10 @@ export function requestAnimationThread(
       return function (timestamp: number) {
         if (typeof index === "undefined" || index > 0) {
           // Prevents unwanted loops for throttled animation threads.
-          if (strict && fps !== _fps() && index >= limit * fps) {
-            index = 0;
-          }
+          // if (strict && fps !== _fps() && index < limit * fps) {
+          //   console.log("this", index, limit * fps);
+          //   index = 0;
+          // }
 
           if (keyframe !== undefined) {
             cancelAnimationFrame(keyframe);
@@ -101,7 +102,7 @@ export function requestAnimationThread(
                 lag,
                 last:
                   index === Infinity ? false : tick >= (index || 0) * _fps(),
-                multiplier,
+                multiplier: fps / _fps(),
                 previousTimestamp,
                 stop,
                 tick,
@@ -137,9 +138,9 @@ export function requestAnimationThread(
                 // frames should be rendered for the running thread;
                 // Secondary failsafe to stop the thread when the moment is
                 // already within the past.
-                if (strict && fps !== _fps() && fps * limit < processed) {
-                  index = 0;
-                }
+                // if (strict && fps !== _fps() && fps * limit < processed) {
+                //   index = 0;
+                // }
 
                 lag = 0;
               }
@@ -159,12 +160,24 @@ export function requestAnimationThread(
                     elapsed / (fpsInterval * multiplier) || 1
                   );
 
-                  const delta = index - fpsCache / fps;
-
                   if (multiplier >= 2) {
-                    index -= treshold;
+                    // console.log(
+                    //   "adjust",
+                    //   _fps(),
+                    //   treshold * (fps / _fps()),
+                    //   index,
+                    //   index - treshold,
+                    //   limit * fps
+                    // );
+                    index -= treshold * (fps / _fps());
+                    // @hiero
+                    console.log(tick, index, limit * fps);
                   } else {
-                    index -= treshold;
+                    // Should stop faster in time with the relative time.
+                    index -= fps / _fps();
+                    if (index <= 0 && tick < limit * _fps()) {
+                      index = fps / _fps();
+                    }
                   }
                 } else if (index) {
                   index -= 1;
@@ -172,6 +185,11 @@ export function requestAnimationThread(
               } else if (index) {
                 index -= 1;
               }
+
+              // if (index > 460) {
+              //   console.log("foo", lag, multiplier);
+              //   index = 0;
+              // }
 
               processed += 1;
 
