@@ -47,6 +47,7 @@ export function requestAnimationThread(
   let keyframe: any;
   let tick = 0;
   let tock = 0;
+  let updated = 0;
   const { limit, relative } = {
     ...defaults,
     ...(options instanceof Object
@@ -78,8 +79,15 @@ export function requestAnimationThread(
                 tock,
               });
 
-              if (relative && l) {
-                l -= 1 * (fps / fpsCache);
+              if (updated && relative && l) {
+                // @todo should define offset from initial limit instead.
+                if (fpsCache > updated) {
+                  l = l * (fps / fpsCache) - 1;
+                } else {
+                  l = l / (fps / fpsCache) - 1;
+                }
+                // Offset the updated FPS once.
+                updated = 0;
               } else if (l) {
                 l--;
               }
@@ -112,6 +120,10 @@ export function requestAnimationThread(
 
   // Throttles the current FPS & interval value from the valid number value.
   const throttle = (value: any) => {
+    // Mark the current thread as updated in order to adjust the relative tock.
+    // position.
+    updated = fpsCache || 1;
+
     fpsCache = parseInt(value) || _fps();
     fpsInterval = value ? fpsToInterval(value) : 0;
 
