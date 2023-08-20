@@ -41,15 +41,19 @@ export function requestAnimationThread(
   fps: number,
   options?: number | AnimationThreadOptions
 ) {
-  let fpsCache: number = fps;
+  let maxFps = 0;
+  let currentFPS: number = fps;
+  let previousFPS: number = fps;
   let fpsInterval: number = fpsToInterval(fps);
   let previousTimestamp: number = 0;
-  let keyframe: any;
+  let keyframe: number;
+  let frame = 0;
   let tick = 0;
   let tock = 0;
   let lag = 0;
-  let offset = 0;
+  let updateIndex = false;
   let processed = 0;
+  let status = "clean";
   const { limit, strict } = {
     ...defaults,
     ...(options instanceof Object
@@ -57,52 +61,66 @@ export function requestAnimationThread(
       : { limit: options || defaults.limit }),
   };
 
-  const _fps = () => parseInt(String(fpsCache)) || fps;
+  // Alias function to return the current FPS value.
+  const _fps = () => parseInt(String(currentFPS)) || fps;
+
+  // Alias function to return the current timestamp.
   const _now = () => window.performance.now() || Date.now();
+
+  // Alias function to define the running index limit.
+  const _limit = () => limit * _fps();
+
+  // Idle callback that updates the properties before entering the new frame.
+  const update: IdleRequestCallback = function () {
+    averageTimestamp = _now();
+    maxFps = 60 % frame === 60 ? 60 : frame;
+    frame = 0;
+  };
+
+  // Idle callback before the current frame is called.
+  const accumulate: IdleRequestCallback = function (deadline) {
+    frame += 1;
+  };
 
   // Times the runtime of the created thread.
   let start = 0;
   let end = 0;
+  let averageTimestamp: number;
 
   const request = new Promise<AnimationThreadResponse>((stop) => {
     const fn = (function (_: number, index?: number) {
       return function (timestamp: number) {
         if (typeof index === "undefined" || index > 0) {
-          // Prevents unwanted loops for throttled animation threads.
-          // if (strict && fps !== _fps() && index < limit * fps) {
-          //   console.log("this", index, limit * fps);
-          //   index = 0;
-          // }
+          // Start the timer on the first frame since the requested frame
+          // can start later.
+          const now = _now();
+          const multiplier = fps / _fps();
+
+          const elapsed = now - (previousTimestamp || start);
+          const runtime = timestamp - averageTimestamp;
+
+          if (runtime > fpsInterval * _fps()) {
+            requestIdleCallback(update);
+          }
 
           if (keyframe !== undefined) {
             cancelAnimationFrame(keyframe);
             keyframe = requestAnimationFrame(fn);
-          }
 
-          // Start the timer on the first frame since the requested frame
-          // can start later.
-          const now = _now();
-          const ratio = fps / fpsCache;
-
-          const elapsed = now - (previousTimestamp || 0);
-
-          if (!start && !previousTimestamp) {
-            start = _now();
+            // Keep track of the running FPS of the Device.
+            requestIdleCallback(accumulate);
           }
 
           try {
             if (fpsInterval && elapsed > fpsInterval) {
-              offset = elapsed % fpsInterval;
-              lag += elapsed * ratio;
-
-              const multiplier = (1 + offset / fpsInterval) * ratio;
+              lag += elapsed * multiplier;
 
               const props = {
                 first: tick <= 0,
                 lag,
                 last:
                   index === Infinity ? false : tick >= (index || 0) * _fps(),
-                multiplier: fps / _fps(),
+                multiplier,
                 previousTimestamp,
                 stop,
                 tick,
@@ -110,88 +128,46 @@ export function requestAnimationThread(
                 tock,
               };
 
-              // console.log("Handle", props);
-
               handler(props);
 
               tick += 1;
               tock = Math.round(tick / _fps());
-              previousTimestamp = now - offset;
-              lag -= fpsInterval * ratio;
+              lag -= fpsInterval * multiplier;
 
-              if (lag && lag > fpsInterval * ratio) {
-                // Adjusts the index length while in strict mode, this ensures
-                // the animation is stopped around the defined multipler
-                // timeline. Keep in mind that some timeshifting is present
-                // when the animation is resolved in strict mode.
-                if (
-                  strict &&
-                  lag >= fpsInterval * ratio &&
-                  ratio % multiplier != 1 &&
-                  index !== undefined
-                ) {
-                  const value = (lag / fpsInterval) * ratio;
-                  index -= Math.ceil(value);
-                }
+              // Updates the running index during strict mode in order to
+              // stop the animation within the expected limit.
+              if (index !== undefined && strict) {
+                const fpsRatio = currentFPS / previousFPS;
+                const updatedIndex = index * fpsRatio;
 
-                // Reset the index to stop the current cycle since all relative
-                // frames should be rendered for the running thread;
-                // Secondary failsafe to stop the thread when the moment is
-                // already within the past.
-                // if (strict && fps !== _fps() && fps * limit < processed) {
-                //   index = 0;
-                // }
+                updateIndex && console.log("To", currentFPS);
 
-                lag = 0;
-              }
-
-              // Adjust the estimated tock value when running in strict mode.
-              // This adjusts the runtime of the current thread with a defined
-              // limit. The defined multiplier will be used to add or subtract
-              // any pending/new frames.
-              //@TODO decide if strict boolean statements should be reversed. current = TRUE
-              if (strict && index !== undefined) {
-                if (
-                  multiplier < 1 ||
-                  multiplier >= 2 ||
-                  elapsed >= fpsInterval * 2
-                ) {
-                  const treshold = Math.round(
-                    elapsed / (fpsInterval * multiplier) || 1
-                  );
-
-                  if (multiplier >= 2) {
-                    // console.log(
-                    //   "adjust",
-                    //   _fps(),
-                    //   treshold * (fps / _fps()),
-                    //   index,
-                    //   index - treshold,
-                    //   limit * fps
-                    // );
-                    index -= treshold * (fps / _fps());
-                    // @hiero
-                    console.log(tick, index, limit * fps);
+                if (index !== updatedIndex && updateIndex) {
+                  // Prevents an infinite index if the frame speed changes before
+                  // updating the running index.
+                  if (updatedIndex > _limit()) {
+                    index = index;
                   } else {
-                    // Should stop faster in time with the relative time.
-                    index -= fps / _fps();
-                    if (index <= 0 && tick < limit * _fps()) {
-                      index = fps / _fps();
-                    }
+                    index = updatedIndex;
                   }
-                } else if (index) {
-                  index -= 1;
+
+                  updateIndex = false;
                 }
-              } else if (index) {
-                index -= 1;
               }
 
-              // if (index > 460) {
-              //   console.log("foo", lag, multiplier);
-              //   index = 0;
-              // }
+              if (index !== undefined && index < 1) {
+                status = "dirty";
+              }
+
+              if (index !== undefined && index >= 1) {
+                index -= 1;
+              } else if (index !== Infinity) {
+                index = 0;
+              }
 
               processed += 1;
+
+              previousTimestamp = now;
 
               // We use the timestamp instead of _now to ensure we end before
               // a next requestAnimationFrame request.
@@ -205,7 +181,7 @@ export function requestAnimationThread(
           }
         } else {
           stop({
-            average: fpsCache / fps, // Will be relative to the final running FPS value.
+            average: currentFPS / fps, // Will be relative to the final running FPS value.
             duration: end - start,
             first: tick <= 0,
             index,
@@ -219,17 +195,30 @@ export function requestAnimationThread(
           });
         }
       };
-    })(_fps(), isNaN(limit) ? Infinity : limit * _fps());
+    })(_fps(), isNaN(limit) ? Infinity : _limit());
+
+    if (!start && !previousTimestamp) {
+      start = _now();
+    }
+
+    averageTimestamp = start;
 
     keyframe = requestAnimationFrame(fn);
   });
 
   // Throttles the current FPS & interval value from the valid number value.
   const throttle = (value: any) => {
-    fpsCache = parseInt(value) || _fps();
-    fpsInterval = value ? fpsToInterval(value) : 0;
+    const interval = value ? fpsToInterval(value) : 0;
 
-    return fpsInterval;
+    requestAnimationFrame(() => {
+      previousFPS = currentFPS;
+      currentFPS = parseInt(value) || _fps();
+      fpsInterval = interval;
+
+      updateIndex = true;
+    });
+
+    return interval;
   };
 
   request.then((r) => console.log("Result:", r, start, end));
@@ -249,7 +238,7 @@ export function requestAnimationThread(
   // The thread should be removed
   const thread = {
     // Returns the running FPS value.
-    fps: () => (fpsInterval ? fpsCache : 0),
+    fps: () => (fpsInterval ? currentFPS : 0),
 
     // Returns the running FPS interval value.
     interval: () => fpsInterval,
@@ -269,7 +258,7 @@ export function requestAnimationThread(
     // Resumes the current thread to the previous throttled value or the
     // initial FPS value prop.
     resume: (value?: number) =>
-      throttle(value || (fpsCache != null ? fpsCache : fps)),
+      throttle(value || (currentFPS != null ? currentFPS : fps)),
 
     // Throttles the running thread.
     throttle,

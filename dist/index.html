@@ -81,10 +81,12 @@
       const thread = requestAnimationThread((response) =>
       {
         const length = 10;
-        element.style.marginLeft = `${value}px`
         element.innerText = thread.fps()
         const n = Math.round(response.multiplier * 100) / 100
         sum += Math.floor(length * n);
+
+        // console.log('handle', length / response.multiplier, response.multiplier * length)
+
         //@TODO should resolve relative value;
         if (strict) {
           value += response.multiplier * length;
@@ -92,8 +94,7 @@
           value += length;
         }
 
-        if (value > 600) {
-        }
+        element.style.transform = `translateX(${value}px)`
       }, fps, { limit: 7, strict })
       if (foo) {
         thread.throttle(foo)
@@ -105,9 +106,10 @@
     // create(5, false);
     // create(10, false, 5);
 
-    create(10, true, 20);
-    create(10, true, 5);
+    // create(10, true, 20);
+    // create(10, true, 5);
     create(10, true);
+    create(10);
     // create(10, true, 20);
     // create(10, true, 40);
 
