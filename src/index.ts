@@ -96,12 +96,6 @@ export function requestAnimationThread(
           const elapsed = now - (previousTimestamp || start);
           const runtime = timestamp - averageTimestamp;
 
-          // if (now - averageTimestamp > fpsInterval) {
-          //   runningFps = 1000 / (now - averageTimestamp);
-          //   console.log(runningFps, 1000 / (now - previousTimestamp));
-          //   // averageTimestamp = now;
-          // }
-
           if (runtime > fpsInterval * _fps()) {
             requestIdleCallback(update);
           }
@@ -125,18 +119,15 @@ export function requestAnimationThread(
               // }
 
               // let multiplier = fps / _fps();
-              const multiplier =
-                fps / (runningFps < _fps() ? runningFps : _fps());
+              const baseFps = status === "clean" ? runningFps : currentFPS;
+              const multiplier = fps / (baseFps < _fps() ? baseFps : _fps());
 
-              if (now - start > 7000) {
-                console.log(lag);
+              // Stops a animation cycles longer than the expected limit.
+              if (index !== undefined && now - start > duration) {
                 index = 0;
+
                 return;
               }
-
-              // Keep track of the actual running FPS of the Device.
-
-              // console.log(maxFps, _fps());
 
               lag += elapsed * multiplier;
 
@@ -144,13 +135,6 @@ export function requestAnimationThread(
               const last =
                 index === Infinity ? false : tick >= (index || 0) * _fps();
 
-              // Updates the running index during strict mode in order to
-              // stop the animation within the expected limit.
-
-              // if (_fps() === 30) {
-              //   console.log(limit / fpsRatio);
-              //   multiplier += 0.1;
-              // }
               if (index !== undefined && strict) {
                 const updatedIndex = index * fpsRatio;
 
@@ -199,8 +183,13 @@ export function requestAnimationThread(
 
               tick += 1;
 
-              if (duration - fpsInterval < _now() - start) {
-                console.log("rerender", _fps());
+              // Ensure the last frame is rendered correctly since we use
+              // floating ratio values.
+              if (duration - elapsed < _now() - start) {
+                status = "dirty";
+
+                console.log("dirty", _fps());
+                index = 1;
               }
             }
           } catch (exception) {
@@ -215,8 +204,6 @@ export function requestAnimationThread(
           // We use the timestamp instead of _now to ensure we end before
           // a next requestAnimationFrame request.
           end = _now();
-
-          console.log(limit, fps);
 
           stop({
             average: currentFPS / fps, // Will be relative to the final running FPS value.

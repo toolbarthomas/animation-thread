@@ -85,6 +85,10 @@
         const n = Math.round(response.multiplier * 100) / 100
         sum += Math.floor(length * n);
 
+        if (response.status === 'dirty') {
+          console.log('multif', response.multiplier);
+        }
+
         // console.log('handle', length / response.multiplier, response.multiplier * length)
 
         //@TODO should resolve relative value;
@@ -96,9 +100,18 @@
 
         element.style.transform = `translateX(${value}px)`
       }, fps, { limit: 7, strict })
+
       if (foo) {
         thread.throttle(foo)
       }
+
+
+      thread.request.then((result) =>
+      {
+        if (result.status === 'dirty') {
+          element.style.transform = `translateX(350px)`
+        }
+      })
       // thread.throttle(20)
     }
 
@@ -108,7 +121,12 @@
 
     // create(10, true, 20);
     create(5, true);
+    create(5, true, 10);
     create(5, true, 30);
+    create(5, true, 60);
+    create(5, true, 75);
+    create(5, true, 90);
+    create(5, true, 1);
     // create(10, true);
     // create(10);
     // create(10, true, 20);
