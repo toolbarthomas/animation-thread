@@ -43,17 +43,23 @@ export type AnimationThreadOptions = {
 };
 
 /**
+ * Expected result values for an animation thread.
+ */
+export type AnimationStatus = "clean" | "dirty";
+
+/**
  * Expected Promise result for the created AnimationThread.
  */
 export type AnimationThreadResponse = {
   average?: AnimationThreadProps["multiplier"];
-  duration: number;
+  end: number;
+  start: number;
   first: AnimationThreadProps["first"];
   index: number;
   lag?: AnimationThreadProps["lag"];
   last: AnimationThreadProps["last"];
-  processed: number;
   previousTimestamp: AnimationThreadProps["previousTimestamp"];
+  status: AnimationStatus;
   tick: AnimationThreadProps["tick"];
   timestamp: AnimationThreadProps["timestamp"];
   tock: AnimationThreadProps["tock"];

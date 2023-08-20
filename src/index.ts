@@ -52,7 +52,6 @@ export function requestAnimationThread(
   let tock = 0;
   let lag = 0;
   let updateIndex = false;
-  let processed = 0;
   let status = "clean";
   const { limit, strict } = {
     ...defaults,
@@ -86,18 +85,22 @@ export function requestAnimationThread(
   let start = 0;
   let end = 0;
   let averageTimestamp: number;
+  const duration = limit * fps * fpsToInterval(fps);
 
   const request = new Promise<AnimationThreadResponse>((stop) => {
     const fn = (function (_: number, index?: number) {
       return function (timestamp: number) {
-        if (typeof index === "undefined" || index > 0) {
-          // Start the timer on the first frame since the requested frame
-          // can start later.
-          const now = _now();
-          const multiplier = fps / _fps();
+        const now = _now();
 
+        if (typeof index === "undefined" || index > 0) {
           const elapsed = now - (previousTimestamp || start);
           const runtime = timestamp - averageTimestamp;
+
+          // if (now - averageTimestamp > fpsInterval) {
+          //   runningFps = 1000 / (now - averageTimestamp);
+          //   console.log(runningFps, 1000 / (now - previousTimestamp));
+          //   // averageTimestamp = now;
+          // }
 
           if (runtime > fpsInterval * _fps()) {
             requestIdleCallback(update);
@@ -106,41 +109,50 @@ export function requestAnimationThread(
           if (keyframe !== undefined) {
             cancelAnimationFrame(keyframe);
             keyframe = requestAnimationFrame(fn);
-
-            // Keep track of the running FPS of the Device.
             requestIdleCallback(accumulate);
           }
 
           try {
             if (fpsInterval && elapsed > fpsInterval) {
+              const runningFps = 1000 / (now - previousTimestamp);
+
+              // if (currentFPS !== runningFps) {
+              //   currentFPS = runningFps;
+              // }
+
+              // if (currentFPS !== previousFPS) {
+              //   updateIndex = true;
+              // }
+
+              // let multiplier = fps / _fps();
+              const multiplier =
+                fps / (runningFps < _fps() ? runningFps : _fps());
+
+              if (now - start > 7000) {
+                console.log(lag);
+                index = 0;
+                return;
+              }
+
+              // Keep track of the actual running FPS of the Device.
+
+              // console.log(maxFps, _fps());
+
               lag += elapsed * multiplier;
 
-              const props = {
-                first: tick <= 0,
-                lag,
-                last:
-                  index === Infinity ? false : tick >= (index || 0) * _fps(),
-                multiplier,
-                previousTimestamp,
-                stop,
-                tick,
-                timestamp,
-                tock,
-              };
-
-              handler(props);
-
-              tick += 1;
-              tock = Math.round(tick / _fps());
-              lag -= fpsInterval * multiplier;
+              const fpsRatio = currentFPS / previousFPS;
+              const last =
+                index === Infinity ? false : tick >= (index || 0) * _fps();
 
               // Updates the running index during strict mode in order to
               // stop the animation within the expected limit.
-              if (index !== undefined && strict) {
-                const fpsRatio = currentFPS / previousFPS;
-                const updatedIndex = index * fpsRatio;
 
-                updateIndex && console.log("To", currentFPS);
+              // if (_fps() === 30) {
+              //   console.log(limit / fpsRatio);
+              //   multiplier += 0.1;
+              // }
+              if (index !== undefined && strict) {
+                const updatedIndex = index * fpsRatio;
 
                 if (index !== updatedIndex && updateIndex) {
                   // Prevents an infinite index if the frame speed changes before
@@ -159,19 +171,37 @@ export function requestAnimationThread(
                 status = "dirty";
               }
 
+              previousTimestamp = now;
+
+              const props = {
+                first: tick <= 0,
+                lag,
+                last,
+                multiplier,
+                previousTimestamp,
+                status,
+                stop,
+                tick,
+                timestamp,
+                tock,
+              };
+
+              handler(props);
+
+              tock = Math.round(tick / _fps());
+              lag -= fpsInterval * multiplier;
+
               if (index !== undefined && index >= 1) {
                 index -= 1;
               } else if (index !== Infinity) {
                 index = 0;
               }
 
-              processed += 1;
+              tick += 1;
 
-              previousTimestamp = now;
-
-              // We use the timestamp instead of _now to ensure we end before
-              // a next requestAnimationFrame request.
-              end = _now();
+              if (duration - fpsInterval < _now() - start) {
+                console.log("rerender", _fps());
+              }
             }
           } catch (exception) {
             if (exception) {
@@ -179,18 +209,27 @@ export function requestAnimationThread(
               console && console.error(exception);
             }
           }
+
+          end = _now();
         } else {
+          // We use the timestamp instead of _now to ensure we end before
+          // a next requestAnimationFrame request.
+          end = _now();
+
+          console.log(limit, fps);
+
           stop({
             average: currentFPS / fps, // Will be relative to the final running FPS value.
-            duration: end - start,
+            end,
             first: tick <= 0,
             index,
             lag,
             last: true,
             previousTimestamp,
-            processed,
+            start,
+            status,
             tick,
-            timestamp,
+            timestamp: now,
             tock,
           });
         }
