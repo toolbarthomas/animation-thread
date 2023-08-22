@@ -5,6 +5,8 @@ import {
   AnimationThreadResponse,
 } from "./_types/main";
 
+import { requestInterval } from "./mixins/requestInterval";
+
 /**
  * Defines the default options when creating a new animation thread.
  */
@@ -95,7 +97,7 @@ export function requestAnimationThread(
   let status: AnimationStatus = defaults.status;
   let tick = 0;
   let tock = 0;
-  let interval: ReturnType<typeof setInterval>[] = [];
+  let interval: ReturnType<typeof requestInterval>;
   const { onFallback, onUpdate, limit, strict } = {
     ...defaults,
     ...(options instanceof Object
@@ -142,31 +144,28 @@ export function requestAnimationThread(
   const accumulate: IdleRequestCallback = function (deadline) {
     currentFrame += 1;
 
+    interval && interval.stop && interval.stop();
+
     // Call the optional fallback handler that will run during a unactuve
     // tab.
     if (typeof onFallback === "function") {
-      interval.push(
-        setInterval(() => {
-          interval.length && interval.forEach((id) => clearInterval(id));
-          interval = [];
-
-          onFallback({
-            tick,
-            tock,
-            previousFPS,
-            previousTimestamp,
-            timestamp: _now(),
-            treshold,
-            stop,
-          });
-        }, 1000)
-      );
+      interval = requestInterval(() => {
+        onFallback({
+          tick,
+          tock,
+          previousFPS,
+          previousTimestamp,
+          timestamp: _now(),
+          treshold,
+          stop,
+        });
+      }, 1000);
     }
   };
 
   // Throttles the current FPS & interval value from the valid number value.
   const throttle = (value: any) => {
-    interval && clearInterval(interval);
+    interval && interval.stop && interval.stop();
 
     const result = value ? fpsToInterval(value) : 0;
 
@@ -366,7 +365,8 @@ export function requestAnimationThread(
 
   // Stop the thread when done.
   request.finally(function () {
-    interval && clearInterval(interval);
+    interval && interval.stop && interval.stop();
+
     // Unref the initial thread since we cannot restore it anymore at this point.
     // Keep in mind that
     Object.keys(thread).forEach((key) => {
