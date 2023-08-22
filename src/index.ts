@@ -9,6 +9,8 @@ import {
  * Defines the default options when creating a new animation thread.
  */
 export const defaults = {
+  status: "clean" as AnimationStatus,
+
   // Updates the running cycle during a throttle to end the animation at the
   // expected duration instead of the throttled version.
   strict: false,
@@ -81,7 +83,7 @@ export function requestAnimationThread(
   // Defines the lag value between the current tick and previous tick, we start
   // with a negative interval value since the first frame is skipped while using
   // this function.
-  let treshold = -fpsInterval;
+  let treshold = 0;
 
   // Flag to update the index once the throttled method is called.
   let updateIndex = false;
@@ -90,17 +92,18 @@ export function requestAnimationThread(
   let maxFps = 0;
   let previousFPS: number = fps;
   let previousTimestamp: number = 0;
-  let status: AnimationStatus = "clean";
+  let status: AnimationStatus = defaults.status;
   let tick = 0;
   let tock = 0;
-  const { limit, strict } = {
+  let interval: ReturnType<typeof setInterval>[] = [];
+  const { onFallback, onUpdate, limit, strict } = {
     ...defaults,
     ...(options instanceof Object
       ? options || defaults
       : { limit: options || defaults.limit }),
   };
 
-  // Times the runtime of the created thread.
+  // Track the runtime of the created thread.
   let start = 0;
   let end = 0;
   let actualTimestamp: number;
@@ -120,26 +123,62 @@ export function requestAnimationThread(
     actualTimestamp = _now();
     maxFps = 60 % currentFrame === 60 ? 60 : currentFrame;
     currentFrame = 0;
+
+    // Call the optional update handler outside the handler context
+    if (typeof onUpdate === "function") {
+      onUpdate({
+        tick,
+        tock,
+        previousFPS,
+        previousTimestamp,
+        timestamp: _now(),
+        treshold,
+        stop,
+      });
+    }
   };
 
   // Idle callback before the current frame is called.
   const accumulate: IdleRequestCallback = function (deadline) {
     currentFrame += 1;
+
+    // Call the optional fallback handler that will run during a unactuve
+    // tab.
+    if (typeof onFallback === "function") {
+      interval.push(
+        setInterval(() => {
+          interval.length && interval.forEach((id) => clearInterval(id));
+          interval = [];
+
+          onFallback({
+            tick,
+            tock,
+            previousFPS,
+            previousTimestamp,
+            timestamp: _now(),
+            treshold,
+            stop,
+          });
+        }, 1000)
+      );
+    }
   };
 
   // Throttles the current FPS & interval value from the valid number value.
   const throttle = (value: any) => {
-    const interval = value ? fpsToInterval(value) : 0;
+    interval && clearInterval(interval);
+
+    const result = value ? fpsToInterval(value) : 0;
 
     requestAnimationFrame(() => {
       previousFPS = currentFPS;
       currentFPS = parseInt(value) || _fps();
-      fpsInterval = interval;
+      fpsInterval = result;
 
       updateIndex = true;
     });
 
-    return interval;
+    return result;
   };
 
   const request = new Promise<AnimationThreadResponse>((stop) => {
@@ -164,7 +203,9 @@ export function requestAnimationThread(
 
           try {
             if (fpsInterval && elapsed > fpsInterval) {
-              const actualFPS = 1000 / (now - previousTimestamp);
+              const actualFPS = Math.round(
+                1000 / (timestamp - previousTimestamp)
+              );
 
               // if (currentFPS !== actualFPS) {
               //   currentFPS = actualFPS;
@@ -176,9 +217,14 @@ export function requestAnimationThread(
 
               // let multiplier = fps / _fps();
               const lag = elapsed - fpsInterval;
-              const baseFps = status === "clean" ? actualFPS : currentFPS;
+              const baseFps =
+                status === defaults.status ? actualFPS : currentFPS;
               const useFPS = maxFps >= baseFps ? baseFps : maxFps;
-              const multiplier = 1 + lag / fpsInterval;
+
+              const ratio = 1 + lag / fpsInterval;
+              const multiplier = strict
+                ? ratio * (fpsInterval / fpsToInterval(fps))
+                : ratio;
 
               // Stops a animation cycles longer than the expected limit.
               if (index !== undefined && now - start > duration) {
@@ -215,8 +261,26 @@ export function requestAnimationThread(
                 status = "dirty";
               }
 
+              // Update the tick relative to the current time.
+              if (
+                multiplier < defaults.offset &&
+                lag < fpsInterval * defaults.offset
+              ) {
+                tick += 1;
+
+                if (index === undefined) {
+                  status = defaults.status;
+                }
+              } else {
+                console.log("frame skip", multiplier);
+                tick += Math.round(multiplier);
+                if (index === undefined) {
+                  status = "dirty";
+                }
+              }
+
               const props = {
-                actualFPS,
+                fps: actualFPS,
                 elapsed,
                 first: tick <= 0,
                 frame,
@@ -235,7 +299,7 @@ export function requestAnimationThread(
               handler(props);
 
               // Update the tracking variables to the current frame.
-              previousTimestamp = now;
+              previousTimestamp = timestamp;
               tock = Math.round(tick / _fps());
               treshold -= fpsInterval;
 
@@ -244,16 +308,6 @@ export function requestAnimationThread(
                 index -= 1;
               } else if (index !== Infinity) {
                 index = 0;
-              }
-
-              // Update the tick relative to the current time.
-              if (
-                multiplier < defaults.offset &&
-                lag < fpsInterval * defaults.offset
-              ) {
-                tick += 1;
-              } else {
-                tick += Math.round(multiplier);
               }
 
               // Ensure the last frame is rendered correctly since we use
@@ -312,6 +366,7 @@ export function requestAnimationThread(
 
   // Stop the thread when done.
   request.finally(function () {
+    interval && clearInterval(interval);
     // Unref the initial thread since we cannot restore it anymore at this point.
     // Keep in mind that
     Object.keys(thread).forEach((key) => {

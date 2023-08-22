@@ -1,12 +1,22 @@
 /**
+ * Expected result values for an animation thread.
+ */
+export type AnimationStatus = "clean" | "dirty";
+
+/**
  * Exposed properties that is assigned within the AnimationHandler context.
  */
 export type AnimationThreadProps = {
+  // The current elapsed time since the usage of the requestAnimationThread.
   elapsed: number;
+
+  // The actual fps that is used within the current frame handler.
+  fps: number;
 
   // TRUE when the first handler is called.
   first: boolean;
 
+  // The current frame according to the actual Device FPS.
   frame: number;
 
   // Optional context value to resolve any timing issues after a throttle.
@@ -25,14 +35,28 @@ export type AnimationThreadProps = {
   // Stops the created/running animation thread.
   stop: any;
 
+  // Rounded value of the relative FPS value
+  tock: number;
+
   // The current frame iteration within the defined loop/cycle.
   tick: number;
 
   // The current animation frame timestamp.
   timestamp: number;
 
-  // Rounded value of the relative FPS value
-  tock: number;
+  // The total ellapsed lag duration since the start of the animation but does
+  // not track any adjustments during a sleeping thread.
+  treshold: number;
+};
+
+export type HandlerProps = {
+  previousTimestamp: AnimationThreadProps["previousTimestamp"];
+  previousFPS: AnimationThreadProps["fps"];
+  timestamp: AnimationThreadProps["timestamp"];
+  stop: AnimationThreadProps["stop"];
+  treshold: AnimationThreadProps["treshold"];
+  tick: AnimationThreadProps["tick"];
+  tock: AnimationThreadProps["tick"];
 };
 
 /**
@@ -42,14 +66,15 @@ export type AnimationThreadOptions = {
   // The maximum amount of tocks to run.
   limit: number;
 
+  // Optional idle callback when the thread is sleeping.
+  onFallback?: (props: HandlerProps) => void;
+
+  // Optional idle callback during a regular tock.
+  onUpdate?: (props: HandlerProps) => void;
+
   // Make the limit value relative in order to use the initial defined tock limit.
   strict?: boolean;
 };
-
-/**
- * Expected result values for an animation thread.
- */
-export type AnimationStatus = "clean" | "dirty";
 
 /**
  * Expected Promise result for the created AnimationThread.

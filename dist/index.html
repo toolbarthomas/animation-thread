@@ -98,8 +98,15 @@
           value += length;
         }
 
-        element.style.transform = `translateX(${value}px)`
-      }, fps, { limit: 7, strict })
+        element.style.marginLeft = `${value}px`;
+        element.style.transform = `rotate(${value}deg)  `;
+        console.log('render');
+      }, fps, {
+        limit: Infinity, strict, onFallback: () =>
+        {
+          console.log('On Fallback')
+        }, onUpdate: () => { console.log('On Update') }
+      })
 
       if (foo) {
         setTimeout(() =>
@@ -119,7 +126,9 @@
       // thread.throttle(20)
     }
 
-    // create(10);
+    // create(10, true);
+    create(1, true);
+
     // create(5, false);
     // create(10, false, 5);
 
@@ -139,10 +148,15 @@
     // create(10, true, 20);
     // create(10, true, 40);
 
-    requestAnimationThread((request) =>
-    {
-      console.log(request)
-    }, 1)
+    // requestAnimationThread((request) =>
+    // {
+    //   console.log(request)
+    // }, 1, {
+    //   onFallback: () =>
+    //   {
+    //     console.log('Fallback')
+    //   }
+    // })
 
     // create(60);
 
