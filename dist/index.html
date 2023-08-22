@@ -50,8 +50,8 @@
 
 
       const resume30 = document.createElement('button')
-      resume30.innerText = "Resume to 30";
-      resume30.onclick = () => thread.resume(30);
+      resume30.innerText = "Resume to 60";
+      resume30.onclick = () => thread.resume(60);
 
       const fpsInfo = document.createElement('button')
       fpsInfo.innerText = "FPS";
@@ -67,8 +67,8 @@
       ten.onclick = () => console.log(thread.throttle(5));
 
       const restore = document.createElement('button')
-      restore.innerText = "Restore";
-      restore.onclick = () => console.log(thread.restore());
+      restore.innerText = "15";
+      restore.onclick = () => console.log(thread.throttle(15));
 
       document.body.appendChild(pause);
       document.body.appendChild(resume);
@@ -80,7 +80,7 @@
 
       const thread = requestAnimationThread((response) =>
       {
-        const length = 10;
+        const length = 2;
         element.innerText = thread.fps()
         const n = Math.round(response.multiplier * 100) / 100
         sum += Math.floor(length * n);
@@ -102,10 +102,11 @@
         element.style.transform = `rotate(${value}deg)  `;
         console.log('render');
       }, fps, {
+        speed: 1,
         limit: Infinity, strict, onFallback: () =>
         {
           console.log('On Fallback')
-        }, onUpdate: () => { console.log('On Update') }
+        }
       })
 
       if (foo) {
@@ -115,7 +116,13 @@
           thread.throttle(foo)
         }, 500)
       }
-
+      setTimeout(() => thread.accelerate(0), 2000)
+      setTimeout(() => thread.accelerate(1), 3000)
+      setTimeout(() => thread.accelerate(2), 3500)
+      setTimeout(() => thread.accelerate(3), 4000)
+      setTimeout(() => thread.accelerate(7), 5000)
+      setTimeout(() => thread.accelerate(-10), 8000)
+      setTimeout(() => thread.accelerate(0), 10000)
 
       thread.request.then((result) =>
       {
@@ -127,7 +134,8 @@
     }
 
     // create(10, true);
-    create(1, true);
+    create(10, true);
+
 
     // create(5, false);
     // create(10, false, 5);

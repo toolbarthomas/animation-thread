@@ -1,4 +1,15 @@
 /**
+ * Meta information of a single frame.
+ */
+export type AnimationFrame = {
+  fps: AnimationThreadProps["fps"];
+  lag: AnimationThreadProps["lag"];
+  multiplier: AnimationThreadProps["multiplier"];
+  speed: AnimationThreadProps["speed"];
+  timestamp: AnimationThreadProps["timestamp"];
+};
+
+/**
  * Expected result values for an animation thread.
  */
 export type AnimationStatus = "clean" | "dirty";
@@ -34,6 +45,8 @@ export type AnimationThreadProps = {
 
   // Stops the created/running animation thread.
   stop: any;
+
+  speed: number;
 
   // Rounded value of the relative FPS value
   tock: number;
@@ -71,6 +84,10 @@ export type AnimationThreadOptions = {
 
   // Optional idle callback during a regular tock.
   onUpdate?: (props: HandlerProps) => void;
+
+  // Plays the thread in the defined speed, can be updated within the thread
+  // response Object.
+  speed?: AnimationThreadProps["speed"];
 
   // Make the limit value relative in order to use the initial defined tock limit.
   strict?: boolean;

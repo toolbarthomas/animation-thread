@@ -1,5 +1,6 @@
 import {
   AnimationStatus,
+  AnimationFrame,
   AnimationThreadOptions,
   AnimationThreadProps,
   AnimationThreadResponse,
@@ -11,23 +12,27 @@ import { requestInterval } from "./mixins/requestInterval";
  * Defines the default options when creating a new animation thread.
  */
 export const defaults = {
+  // Rounding number for smooth values.
+  decimal: 1000000,
+
+  // The default FPS value to use.
+  fps: 30,
+
+  // Loops the trhead by default.
+  limit: Infinity,
+
+  // Maximum offset multiplier of the defined interval.
+  offset: 2,
+
+  // Plays the defined thread within the given speed multiplier.
+  speed: 1,
+
+  // Does not call the fallback logic by default.
   status: "clean" as AnimationStatus,
 
   // Updates the running cycle during a throttle to end the animation at the
   // expected duration instead of the throttled version.
   strict: false,
-
-  // Loops the trhead by default.
-  limit: Infinity,
-
-  // The default FPS value to use.
-  fps: 30,
-
-  // Rounding number for smooth values.
-  decimal: 1000000,
-
-  // Maximum offset multiplier of the defined interval.
-  offset: 2,
 };
 
 /**
@@ -97,8 +102,9 @@ export function requestAnimationThread(
   let status: AnimationStatus = defaults.status;
   let tick = 0;
   let tock = 0;
+  let timeline: AnimationFrame[] = [];
   let interval: ReturnType<typeof requestInterval>;
-  const { onFallback, onUpdate, limit, strict } = {
+  const { onFallback, onUpdate, limit, speed, strict } = {
     ...defaults,
     ...(options instanceof Object
       ? options || defaults
@@ -109,6 +115,7 @@ export function requestAnimationThread(
   let start = 0;
   let end = 0;
   let actualTimestamp: number;
+  let currentSpeed = isNaN(parseFloat(speed as any)) ? defaults.speed : speed;
   const duration = limit * fps * fpsToInterval(fps);
 
   // Alias function to return the current FPS value.
@@ -125,6 +132,12 @@ export function requestAnimationThread(
     actualTimestamp = _now();
     maxFps = 60 % currentFrame === 60 ? 60 : currentFrame;
     currentFrame = 0;
+    console.log("update");
+
+    if (timeline.length > fps) {
+      timeline = timeline.slice(1).slice(-Math.abs(fps));
+    }
+    console.log(timeline);
 
     // Call the optional update handler outside the handler context
     if (typeof onUpdate === "function") {
@@ -200,6 +213,10 @@ export function requestAnimationThread(
             requestIdleCallback(accumulate);
           }
 
+          if (currentSpeed === 0) {
+            return;
+          }
+
           try {
             if (fpsInterval && elapsed > fpsInterval) {
               const actualFPS = Math.round(
@@ -222,8 +239,8 @@ export function requestAnimationThread(
 
               const ratio = 1 + lag / fpsInterval;
               const multiplier = strict
-                ? ratio * (fpsInterval / fpsToInterval(fps))
-                : ratio;
+                ? ratio * (fpsInterval / fpsToInterval(fps)) * currentSpeed
+                : ratio * currentSpeed;
 
               // Stops a animation cycles longer than the expected limit.
               if (index !== undefined && now - start > duration) {
@@ -273,10 +290,20 @@ export function requestAnimationThread(
               } else {
                 console.log("frame skip", multiplier);
                 tick += Math.round(multiplier);
+
                 if (index === undefined) {
                   status = "dirty";
                 }
               }
+
+              //
+              timeline.push({
+                fps: actualFPS,
+                lag,
+                multiplier,
+                speed: currentSpeed,
+                timestamp: now,
+              });
 
               const props = {
                 fps: actualFPS,
@@ -287,6 +314,7 @@ export function requestAnimationThread(
                 last,
                 multiplier,
                 previousTimestamp,
+                speed: currentSpeed,
                 status,
                 stop,
                 treshold,
@@ -379,6 +407,12 @@ export function requestAnimationThread(
   // Defines the actual interface to control the created thread.
   // The thread should be removed
   const thread = {
+    accelerate: (value?: any) => {
+      currentSpeed = isNaN(parseFloat(value)) ? defaults.speed : value;
+
+      return currentSpeed;
+    },
+
     // Returns the running FPS value.
     fps: () => (fpsInterval ? currentFPS : 0),
 
