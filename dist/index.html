@@ -118,11 +118,17 @@
       }
       setTimeout(() => thread.accelerate(0), 2000)
       setTimeout(() => thread.accelerate(1), 3000)
-      setTimeout(() => thread.accelerate(2), 3500)
+      setTimeout(() =>
+      {
+        thread.accelerate(2)
+        thread.throttle(fps * 2)
+      }, 3500)
       setTimeout(() => thread.accelerate(3), 4000)
       setTimeout(() => thread.accelerate(7), 5000)
       setTimeout(() => thread.accelerate(-10), 8000)
       setTimeout(() => thread.accelerate(0), 10000)
+      setTimeout(() => thread.throttle(60), 12000)
+      setTimeout(() => thread.accelerate(1), 12000)
 
       thread.request.then((result) =>
       {

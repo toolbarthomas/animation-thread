@@ -433,8 +433,8 @@ export function requestAnimationThread(
 
     // Resumes the current thread to the previous throttled value or the
     // initial FPS value prop.
-    resume: (value?: number) =>
-      throttle(value || (currentFPS != null ? currentFPS : fps)),
+    resume: (value?: any) =>
+      throttle(isNaN(parseInt(value)) ? value : previousFPS || fps),
 
     // Throttles the running thread.
     throttle,
