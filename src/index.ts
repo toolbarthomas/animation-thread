@@ -1,4 +1,5 @@
 import {
+  AnimationStatus,
   AnimationThreadOptions,
   AnimationThreadProps,
   AnimationThreadResponse,
@@ -8,9 +9,21 @@ import {
  * Defines the default options when creating a new animation thread.
  */
 export const defaults = {
+  // Updates the running cycle during a throttle to end the animation at the
+  // expected duration instead of the throttled version.
   strict: false,
+
+  // Loops the trhead by default.
   limit: Infinity,
+
+  // The default FPS value to use.
   fps: 30,
+
+  // Rounding number for smooth values.
+  decimal: 1000000,
+
+  // Maximum offset multiplier of the defined interval.
+  offset: 2,
 };
 
 /**
@@ -20,6 +33,15 @@ export const defaults = {
  */
 export const fpsToInterval = (value: number) => {
   return 1000 / parseInt(String(value != null ? value : defaults.fps));
+};
+
+/**
+ * Rounds the given number value to ensure correct animation smoothing.
+ *
+ * @param value The value the round.
+ */
+export const smooth = (value: number) => {
+  return Math.round(value * defaults.decimal) / defaults.decimal;
 };
 
 /**
@@ -41,24 +63,48 @@ export function requestAnimationThread(
   fps: number,
   options?: number | AnimationThreadOptions
 ) {
-  let maxFps = 0;
+  // Defines the alternative FPS from a throttled thread.
   let currentFPS: number = fps;
-  let previousFPS: number = fps;
+
+  // Helper value to defined the actual FPS.
+  let currentFrame = 0;
+
+  // The interval in ms between each tick.
   let fpsInterval: number = fpsToInterval(fps);
-  let previousTimestamp: number = 0;
-  let keyframe: number;
+
+  // Will increase within each requestAnimationFrame regardless of the max FPS.
   let frame = 0;
+
+  // Hold the current requestAnimationFrame.
+  let keyframe: number;
+
+  // Defines the lag value between the current tick and previous tick, we start
+  // with a negative interval value since the first frame is skipped while using
+  // this function.
+  let treshold = -fpsInterval;
+
+  // Flag to update the index once the throttled method is called.
+  let updateIndex = false;
+
+  // Various tracking variables that is exposed within the defined handler.
+  let maxFps = 0;
+  let previousFPS: number = fps;
+  let previousTimestamp: number = 0;
+  let status: AnimationStatus = "clean";
   let tick = 0;
   let tock = 0;
-  let lag = 0;
-  let updateIndex = false;
-  let status = "clean";
   const { limit, strict } = {
     ...defaults,
     ...(options instanceof Object
       ? options || defaults
       : { limit: options || defaults.limit }),
   };
+
+  // Times the runtime of the created thread.
+  let start = 0;
+  let end = 0;
+  let actualTimestamp: number;
+  const duration = limit * fps * fpsToInterval(fps);
 
   // Alias function to return the current FPS value.
   const _fps = () => parseInt(String(currentFPS)) || fps;
@@ -71,30 +117,40 @@ export function requestAnimationThread(
 
   // Idle callback that updates the properties before entering the new frame.
   const update: IdleRequestCallback = function () {
-    averageTimestamp = _now();
-    maxFps = 60 % frame === 60 ? 60 : frame;
-    frame = 0;
+    actualTimestamp = _now();
+    maxFps = 60 % currentFrame === 60 ? 60 : currentFrame;
+    currentFrame = 0;
   };
 
   // Idle callback before the current frame is called.
   const accumulate: IdleRequestCallback = function (deadline) {
-    frame += 1;
+    currentFrame += 1;
   };
 
-  // Times the runtime of the created thread.
-  let start = 0;
-  let end = 0;
-  let averageTimestamp: number;
-  const duration = limit * fps * fpsToInterval(fps);
+  // Throttles the current FPS & interval value from the valid number value.
+  const throttle = (value: any) => {
+    const interval = value ? fpsToInterval(value) : 0;
+
+    requestAnimationFrame(() => {
+      previousFPS = currentFPS;
+      currentFPS = parseInt(value) || _fps();
+      fpsInterval = interval;
+
+      updateIndex = true;
+    });
+
+    return interval;
+  };
 
   const request = new Promise<AnimationThreadResponse>((stop) => {
     const fn = (function (_: number, index?: number) {
       return function (timestamp: number) {
+        frame += 1;
         const now = _now();
 
         if (typeof index === "undefined" || index > 0) {
           const elapsed = now - (previousTimestamp || start);
-          const runtime = timestamp - averageTimestamp;
+          const runtime = timestamp - actualTimestamp;
 
           if (runtime > fpsInterval * _fps()) {
             requestIdleCallback(update);
@@ -108,10 +164,10 @@ export function requestAnimationThread(
 
           try {
             if (fpsInterval && elapsed > fpsInterval) {
-              const runningFps = 1000 / (now - previousTimestamp);
+              const actualFPS = 1000 / (now - previousTimestamp);
 
-              // if (currentFPS !== runningFps) {
-              //   currentFPS = runningFps;
+              // if (currentFPS !== actualFPS) {
+              //   currentFPS = actualFPS;
               // }
 
               // if (currentFPS !== previousFPS) {
@@ -119,8 +175,10 @@ export function requestAnimationThread(
               // }
 
               // let multiplier = fps / _fps();
-              const baseFps = status === "clean" ? runningFps : currentFPS;
-              const multiplier = fps / (baseFps < _fps() ? baseFps : _fps());
+              const lag = elapsed - fpsInterval;
+              const baseFps = status === "clean" ? actualFPS : currentFPS;
+              const useFPS = maxFps >= baseFps ? baseFps : maxFps;
+              const multiplier = 1 + lag / fpsInterval;
 
               // Stops a animation cycles longer than the expected limit.
               if (index !== undefined && now - start > duration) {
@@ -129,72 +187,88 @@ export function requestAnimationThread(
                 return;
               }
 
-              lag += elapsed * multiplier;
+              treshold += elapsed;
 
               const fpsRatio = currentFPS / previousFPS;
               const last =
                 index === Infinity ? false : tick >= (index || 0) * _fps();
 
               if (index !== undefined && strict) {
-                const updatedIndex = index * fpsRatio;
+                const newIndex = index * fpsRatio;
 
-                if (index !== updatedIndex && updateIndex) {
+                if (index !== newIndex && updateIndex) {
                   // Prevents an infinite index if the frame speed changes before
                   // updating the running index.
-                  if (updatedIndex > _limit()) {
+                  if (newIndex > _limit()) {
                     index = index;
                   } else {
-                    index = updatedIndex;
+                    index = newIndex;
                   }
 
                   updateIndex = false;
                 }
               }
 
+              // The animation is not clean since an extra frame is included
+              // within the index.
               if (index !== undefined && index < 1) {
                 status = "dirty";
               }
 
-              previousTimestamp = now;
-
               const props = {
+                actualFPS,
+                elapsed,
                 first: tick <= 0,
+                frame,
                 lag,
                 last,
                 multiplier,
                 previousTimestamp,
                 status,
                 stop,
+                treshold,
                 tick,
-                timestamp,
+                timestamp: now,
                 tock,
               };
 
               handler(props);
 
+              // Update the tracking variables to the current frame.
+              previousTimestamp = now;
               tock = Math.round(tick / _fps());
-              lag -= fpsInterval * multiplier;
+              treshold -= fpsInterval;
 
+              // Updates the running index for an animation cycle.
               if (index !== undefined && index >= 1) {
                 index -= 1;
               } else if (index !== Infinity) {
                 index = 0;
               }
 
-              tick += 1;
+              // Update the tick relative to the current time.
+              if (
+                multiplier < defaults.offset &&
+                lag < fpsInterval * defaults.offset
+              ) {
+                tick += 1;
+              } else {
+                tick += Math.round(multiplier);
+              }
 
               // Ensure the last frame is rendered correctly since we use
               // floating ratio values.
-              if (duration - elapsed < _now() - start) {
+              if (index !== undefined && duration - elapsed < _now() - start) {
                 status = "dirty";
-
-                console.log("dirty", _fps());
                 index = 1;
               }
             }
           } catch (exception) {
             if (exception) {
-              index = 0;
+              if (index !== undefined) {
+                index = 0;
+              }
+
               console && console.error(exception);
             }
           }
@@ -206,11 +280,13 @@ export function requestAnimationThread(
           end = _now();
 
           stop({
-            average: currentFPS / fps, // Will be relative to the final running FPS value.
+            frame,
+            fps: _fps(),
+            multiplier: currentFPS / fps, // Will be relative to the final running FPS value.
             end,
             first: tick <= 0,
             index,
-            lag,
+            treshold,
             last: true,
             previousTimestamp,
             start,
@@ -227,25 +303,10 @@ export function requestAnimationThread(
       start = _now();
     }
 
-    averageTimestamp = start;
+    actualTimestamp = start;
 
     keyframe = requestAnimationFrame(fn);
   });
-
-  // Throttles the current FPS & interval value from the valid number value.
-  const throttle = (value: any) => {
-    const interval = value ? fpsToInterval(value) : 0;
-
-    requestAnimationFrame(() => {
-      previousFPS = currentFPS;
-      currentFPS = parseInt(value) || _fps();
-      fpsInterval = interval;
-
-      updateIndex = true;
-    });
-
-    return interval;
-  };
 
   request.then((r) => console.log("Result:", r, start, end));
 
@@ -272,7 +333,7 @@ export function requestAnimationThread(
     // Pause the running thread and prevent any calls to the defined handler.
     pause: () => throttle(0),
 
-    // The defined behavior for the animation thread.
+    // The defined behavior for the animation cycle.
     strict,
 
     // The initial Promise Object that should control the animation context.

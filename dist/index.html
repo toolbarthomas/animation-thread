@@ -102,7 +102,11 @@
       }, fps, { limit: 7, strict })
 
       if (foo) {
-        thread.throttle(foo)
+        setTimeout(() =>
+        {
+
+          thread.throttle(foo)
+        }, 500)
       }
 
 
@@ -120,18 +124,25 @@
     // create(10, false, 5);
 
     // create(10, true, 20);
-    create(5, true);
-    create(5, true, 10);
-    create(5, true, 30);
-    create(5, true, 60);
-    create(5, true, 75);
-    create(5, true, 90);
-    create(5, true, 1);
+    // create(5, false, 30);
+    // create(5, false, 60);
+
+    // create(5, true);
+    // create(5, true, 10);
+    // create(5, true, 30);
+    // create(5, true, 60);
+    // create(5, true, 75);
+    // create(5, true, 90);
+    // create(5, true, 1);
     // create(10, true);
     // create(10);
     // create(10, true, 20);
     // create(10, true, 40);
 
+    requestAnimationThread((request) =>
+    {
+      console.log(request)
+    }, 1)
 
     // create(60);
 

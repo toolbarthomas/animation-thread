@@ -2,11 +2,15 @@
  * Exposed properties that is assigned within the AnimationHandler context.
  */
 export type AnimationThreadProps = {
+  elapsed: number;
+
   // TRUE when the first handler is called.
   first: boolean;
 
+  frame: number;
+
   // Optional context value to resolve any timing issues after a throttle.
-  lag?: number;
+  lag: number;
 
   // TRUE when the last handler is called.
   last: boolean;
@@ -51,16 +55,18 @@ export type AnimationStatus = "clean" | "dirty";
  * Expected Promise result for the created AnimationThread.
  */
 export type AnimationThreadResponse = {
-  average?: AnimationThreadProps["multiplier"];
   end: number;
-  start: number;
   first: AnimationThreadProps["first"];
+  fps: number;
+  frame: AnimationThreadProps["frame"];
   index: number;
-  lag?: AnimationThreadProps["lag"];
   last: AnimationThreadProps["last"];
+  multiplier: AnimationThreadProps["multiplier"];
   previousTimestamp: AnimationThreadProps["previousTimestamp"];
+  start: number;
   status: AnimationStatus;
   tick: AnimationThreadProps["tick"];
   timestamp: AnimationThreadProps["timestamp"];
   tock: AnimationThreadProps["tock"];
+  treshold: number;
 };
