@@ -17,12 +17,7 @@
     "noUnusedParameters": false,
     "outDir": "",
     "paths": {},
-    "plugins": [
-      {
-        "name": "ts-lit-plugin",
-        "strict": true
-      }
-    ],
+    "plugins": [],
     "rootDir": "./src",
     "strict": true,
     "types": [],
