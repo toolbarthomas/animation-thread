@@ -132,12 +132,10 @@ export function requestAnimationThread(
     actualTimestamp = _now();
     maxFps = 60 % currentFrame === 60 ? 60 : currentFrame;
     currentFrame = 0;
-    console.log("update");
 
     if (timeline.length > fps) {
       timeline = timeline.slice(1).slice(-Math.abs(fps));
     }
-    console.log(timeline);
 
     // Call the optional update handler outside the handler context
     if (typeof onUpdate === "function") {
@@ -308,7 +306,7 @@ export function requestAnimationThread(
               const props = {
                 fps: actualFPS,
                 elapsed,
-                first: tick <= 0,
+                first: tick <= 1,
                 frame,
                 lag,
                 last,
@@ -442,3 +440,8 @@ export function requestAnimationThread(
 
   return thread;
 }
+
+/**
+ * Alias the expected response type within the package root to a semantic name.
+ */
+export type AnimationThread = typeof requestAnimationThread;
