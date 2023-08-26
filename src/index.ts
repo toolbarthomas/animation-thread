@@ -33,6 +33,9 @@ export const defaults = {
   // Updates the running cycle during a throttle to end the animation at the
   // expected duration instead of the throttled version.
   strict: false,
+
+  // Use the window.performance instead when available.
+  highResolution: false,
 };
 
 /**
@@ -104,7 +107,7 @@ export function requestAnimationThread(
   let tock = 0;
   let timeline: AnimationFrame[] = [];
   let interval: ReturnType<typeof requestInterval>;
-  const { onFallback, onUpdate, limit, speed, strict } = {
+  const { onFallback, onUpdate, highResolution, limit, speed, strict } = {
     ...defaults,
     ...(options instanceof Object
       ? options || defaults
@@ -195,11 +198,13 @@ export function requestAnimationThread(
     const fn = (function (_: number, index?: number) {
       return function (timestamp: number) {
         frame += 1;
-        const now = _now();
+
+        // Pick the initial frame timestamp or use the actual timestamp format.
+        const now = highResolution ? _now() : timestamp;
 
         if (typeof index === "undefined" || index > 0) {
-          const elapsed = now - (previousTimestamp || start);
-          const runtime = timestamp - actualTimestamp;
+          const delta = now - (previousTimestamp || start);
+          const runtime = now - actualTimestamp;
 
           if (runtime > fpsInterval * _fps()) {
             requestIdleCallback(update);
@@ -216,7 +221,7 @@ export function requestAnimationThread(
           }
 
           try {
-            if (fpsInterval && elapsed > fpsInterval) {
+            if (fpsInterval && delta > fpsInterval) {
               const actualFPS = Math.round(
                 1000 / (timestamp - previousTimestamp)
               );
@@ -230,7 +235,7 @@ export function requestAnimationThread(
               // }
 
               // let multiplier = fps / _fps();
-              const lag = elapsed - fpsInterval;
+              const lag = delta - fpsInterval;
               const baseFps =
                 status === defaults.status ? actualFPS : currentFPS;
               const useFPS = maxFps >= baseFps ? baseFps : maxFps;
@@ -247,7 +252,7 @@ export function requestAnimationThread(
                 return;
               }
 
-              treshold += elapsed;
+              treshold += delta;
 
               const fpsRatio = currentFPS / previousFPS;
               const last =
@@ -294,7 +299,12 @@ export function requestAnimationThread(
                 }
               }
 
-              //
+              if (actualFPS !== currentFPS) {
+                status = "dirty";
+              } else {
+                status = defaults.status;
+              }
+
               timeline.push({
                 fps: actualFPS,
                 lag,
@@ -305,7 +315,8 @@ export function requestAnimationThread(
 
               const props = {
                 fps: actualFPS,
-                elapsed,
+                delta,
+                elapsed: now - start,
                 first: tick <= 1,
                 frame,
                 lag,
@@ -324,7 +335,7 @@ export function requestAnimationThread(
               handler(props);
 
               // Update the tracking variables to the current frame.
-              previousTimestamp = timestamp;
+              previousTimestamp = now;
               tock = Math.round(tick / _fps());
               treshold -= fpsInterval;
 
@@ -337,7 +348,7 @@ export function requestAnimationThread(
 
               // Ensure the last frame is rendered correctly since we use
               // floating ratio values.
-              if (index !== undefined && duration - elapsed < _now() - start) {
+              if (index !== undefined && duration - delta < _now() - start) {
                 status = "dirty";
                 index = 1;
               }

@@ -18,6 +18,10 @@ export type AnimationStatus = "clean" | "dirty";
  * Exposed properties that is assigned within the AnimationHandler context.
  */
 export type AnimationThreadProps = {
+  // The delta value between the current frame timestamp and previous frame
+  // timestamp.
+  delta: number;
+
   // The current elapsed time since the usage of the requestAnimationThread.
   elapsed: number;
 
@@ -76,6 +80,9 @@ export type HandlerProps = {
  * Optional options to use when creating a new animation thread.
  */
 export type AnimationThreadOptions = {
+  // Use performance.now() instead of the current timestamp.
+  highResolution?: boolean;
+
   // The maximum amount of tocks to run.
   limit: number;
 
