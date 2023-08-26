@@ -25,11 +25,11 @@ export type AnimationThreadProps = {
   // The current elapsed time since the usage of the requestAnimationThread.
   elapsed: number;
 
-  // The actual fps that is used within the current frame handler.
-  fps: number;
-
   // TRUE when the first handler is called.
   first: boolean;
+
+  // The actual fps that is used within the current frame handler.
+  fps: number;
 
   // The current frame according to the actual Device FPS.
   frame: number;
@@ -47,19 +47,26 @@ export type AnimationThreadProps = {
   // The dynamic timestamp of the previous tick based of the running FPS.
   previousTimestamp: number;
 
+  // The current speed the thread is running.
+  speed: number;
+
+  // The current frame status.
+  status: string;
+
   // Stops the created/running animation thread.
   stop: any;
 
-  speed: number;
-
-  // Rounded value of the relative FPS value
-  tock: number;
+  // The desired FPS of the running thread.
+  targetFPS: number;
 
   // The current frame iteration within the defined loop/cycle.
   tick: number;
 
   // The current animation frame timestamp.
   timestamp: number;
+
+  // Rounded value of the relative FPS value
+  tock: number;
 
   // The total ellapsed lag duration since the start of the animation but does
   // not track any adjustments during a sleeping thread.
@@ -84,7 +91,7 @@ export type AnimationThreadOptions = {
   highResolution?: boolean;
 
   // The maximum amount of tocks to run.
-  limit: number;
+  limit?: number;
 
   // Optional idle callback when the thread is sleeping.
   onFallback?: (props: HandlerProps) => void;
@@ -106,7 +113,7 @@ export type AnimationThreadOptions = {
 export type AnimationThreadResponse = {
   end: number;
   first: AnimationThreadProps["first"];
-  fps: number;
+  fps: AnimationThreadProps["targetFPS"];
   frame: AnimationThreadProps["frame"];
   index: number;
   last: AnimationThreadProps["last"];

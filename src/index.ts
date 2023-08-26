@@ -291,7 +291,6 @@ export function requestAnimationThread(
                   status = defaults.status;
                 }
               } else {
-                console.log("frame skip", multiplier);
                 tick += Math.round(multiplier);
 
                 if (index === undefined) {
@@ -314,10 +313,10 @@ export function requestAnimationThread(
               });
 
               const props = {
-                fps: actualFPS,
                 delta,
                 elapsed: now - start,
                 first: tick <= 1,
+                fps: actualFPS,
                 frame,
                 lag,
                 last,
@@ -326,10 +325,11 @@ export function requestAnimationThread(
                 speed: currentSpeed,
                 status,
                 stop,
-                treshold,
+                targetFPS: _fps(),
                 tick,
                 timestamp: now,
                 tock,
+                treshold,
               };
 
               handler(props);
@@ -455,4 +455,4 @@ export function requestAnimationThread(
 /**
  * Alias the expected response type within the package root to a semantic name.
  */
-export type AnimationThread = typeof requestAnimationThread;
+export type AnimationThread = ReturnType<typeof requestAnimationThread>;
