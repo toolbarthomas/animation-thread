@@ -2,11 +2,15 @@ import {
   AnimationStatus,
   AnimationFrame,
   AnimationThreadOptions,
-  AnimationThreadProps,
+  AnimationThreadProps as _AnimationThreadProps,
   AnimationThreadResponse,
 } from "./_types/main";
 
 import { requestInterval } from "./mixins/requestInterval";
+
+// Reference of the exposed properties for the defined handler animation thread
+// handler.
+export type AnimationThreadProps = _AnimationThreadProps;
 
 /**
  * Defines the default options when creating a new animation thread.
@@ -307,7 +311,8 @@ export function requestAnimationThread(
               timeline.push({
                 fps: actualFPS,
                 lag,
-                multiplier,
+                multiplier: this.smooth(multiplier),
+                multiplierHighres: multiplier,
                 speed: currentSpeed,
                 timestamp: now,
               });
@@ -320,7 +325,8 @@ export function requestAnimationThread(
                 frame,
                 lag,
                 last,
-                multiplier,
+                multiplier: this.smooth(multiplier),
+                multiplierHighres: multiplier,
                 previousTimestamp,
                 speed: currentSpeed,
                 status,

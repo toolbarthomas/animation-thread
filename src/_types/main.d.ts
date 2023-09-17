@@ -40,9 +40,13 @@ export type AnimationThreadProps = {
   // TRUE when the last handler is called.
   last: boolean;
 
-  // Defines the ratio of the current FPS compared to the initial defined
+  // Defines the smoothed ratio of the current FPS compared to the initial defined
   // FPS value.
   multiplier: number;
+
+  // Defines the ratio of the current FPS compared to the initial defined
+  // FPS value.
+  multiplierHighres: number;
 
   // The dynamic timestamp of the previous tick based of the running FPS.
   previousTimestamp: number;
@@ -118,6 +122,7 @@ export type AnimationThreadResponse = {
   index: number;
   last: AnimationThreadProps["last"];
   multiplier: AnimationThreadProps["multiplier"];
+  multiplierHighres: AnimationThreadProps["multiplier"];
   previousTimestamp: AnimationThreadProps["previousTimestamp"];
   start: number;
   status: AnimationStatus;
