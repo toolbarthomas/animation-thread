@@ -4,7 +4,7 @@
     "typescript": "^5.5.3"
   },
   "name": "@toolbarthomas/animation-thread",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Throttleable requestAnimationFrame utility",
   "main": "dist/index.js",
   "scripts": {

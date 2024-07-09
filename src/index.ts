@@ -311,7 +311,7 @@ export function requestAnimationThread(
               timeline.push({
                 fps: actualFPS,
                 lag,
-                multiplier: this.smooth(multiplier),
+                multiplier: smooth(multiplier),
                 multiplierHighres: multiplier,
                 speed: currentSpeed,
                 timestamp: now,
@@ -325,7 +325,7 @@ export function requestAnimationThread(
                 frame,
                 lag,
                 last,
-                multiplier: this.smooth(multiplier),
+                multiplier: smooth(multiplier),
                 multiplierHighres: multiplier,
                 previousTimestamp,
                 speed: currentSpeed,
