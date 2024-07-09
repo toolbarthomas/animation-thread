@@ -1,10 +1,10 @@
 {
   "devDependencies": {
-    "esbuild": "^0.19.2",
-    "typescript": "^5.1.6"
+    "esbuild": "^0.23.0",
+    "typescript": "^5.5.3"
   },
   "name": "@toolbarthomas/animation-thread",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Throttleable requestAnimationFrame utility",
   "main": "dist/index.js",
   "scripts": {
