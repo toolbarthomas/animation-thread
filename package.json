@@ -1,7 +1,7 @@
 {
   "devDependencies": {
-    "esbuild": "^0.23.0",
-    "typescript": "^5.5.3"
+    "esbuild": "^0.25.10",
+    "typescript": "^5.9.2"
   },
   "name": "@toolbarthomas/animation-thread",
   "version": "0.1.2",

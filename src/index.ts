@@ -5,7 +5,6 @@ import {
   AnimationThreadProps as _AnimationThreadProps,
   AnimationThreadResponse,
 } from "./_types/main";
-
 import { requestInterval } from "./mixins/requestInterval";
 
 // Reference of the exposed properties for the defined handler animation thread
@@ -403,8 +402,6 @@ export function requestAnimationThread(
 
     keyframe = requestAnimationFrame(fn);
   });
-
-  request.then((r) => console.log("Result:", r, start, end));
 
   // Stop the thread when done.
   request.finally(function () {
