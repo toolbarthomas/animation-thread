@@ -1,7 +1,7 @@
 import { requestAnimationThread } from "src";
 
-//@ts-ignore
-if (!window.requestAnimationThread) {
-  //@ts-ignore
-  window.requestAnimationThread = requestAnimationThread;
+const ref = globalThis as any;
+
+if (!ref.requestAnimationThread) {
+  ref.requestAnimationThread = requestAnimationThread;
 }

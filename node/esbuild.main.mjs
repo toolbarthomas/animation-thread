@@ -8,7 +8,7 @@ import { argv } from "./argv.mjs";
   const format = argv.f || argv.format || "esm";
   const suffix = argv.m || argv.minify ? ".min" : "";
   const outExtension = {
-    ".js": `${suffix}${format === "cjs" ? ".cjs" : ".js"}`,
+    ".js": `${suffix}.js`,
   };
   const serve = argv.s || argv.serve || false;
 
@@ -21,7 +21,7 @@ import { argv } from "./argv.mjs";
     minify: argv.m || argv.minify || false,
     outdir: "dist",
     outExtension,
-    platform: format === "cjs" ? "node" : "browser",
+    platform: "browser",
     plugins: [],
   };
 

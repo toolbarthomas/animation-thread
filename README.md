@@ -37,12 +37,6 @@ import { requestAnimationThread } from "@toolbarthomas/animation-thread"
 
 ```
 
-#### CommonJS Module
-```ts
-import { requestAnimationThread } from "@toolbarthomas/animation-thread/dist/index.cjs"
-
-```
-
 #### Legacy Browser (not recommended)
 ```html
 <script src="@toolbarthomas/animation-thread/dist/legacy.js"></script>

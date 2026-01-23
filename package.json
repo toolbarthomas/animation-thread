@@ -1,18 +1,14 @@
 {
-  "devDependencies": {
-    "esbuild": "^0.25.10",
-    "typescript": "^5.9.2"
-  },
   "name": "@toolbarthomas/animation-thread",
-  "version": "0.1.2",
-  "description": "Throttleable requestAnimationFrame utility",
+  "version": "0.2.0",
+  "type": "module",
+  "description": "Variable Animation Frame utility",
   "main": "dist/index.js",
   "scripts": {
     "test": "tsc --noEmit",
     "dev": "node node/esbuild.main.mjs -s",
     "postinstall": "npm run build",
-    "build": "npm run build:cjs & npm run build:esm & npm run build:legacy",
-    "build:cjs": "node node/esbuild.main.mjs --format=cjs && node node/esbuild.main.mjs --format=cjs -m",
+    "build": "npm run build:esm & npm run build:legacy",
     "build:esm": "node node/esbuild.main.mjs && node node/esbuild.main.mjs -m",
     "build:legacy": "node node/esbuild.legacy.mjs && node node/esbuild.legacy.mjs -m"
   },
@@ -39,5 +35,9 @@
   "bugs": {
     "url": "https://github.com/toolbarthomas/animation-thread/issues"
   },
-  "homepage": "https://github.com/toolbarthomas/animation-thread#readme"
+  "homepage": "https://github.com/toolbarthomas/animation-thread#readme",
+  "devDependencies": {
+    "esbuild": "^0.27.2",
+    "typescript": "^5.9.3"
+  }
 }

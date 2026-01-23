@@ -76,7 +76,7 @@ export const smooth = (value: number) => {
 export function requestAnimationThread(
   handler: (props: AnimationThreadProps) => void,
   fps: number,
-  options?: number | AnimationThreadOptions
+  options?: number | AnimationThreadOptions,
 ) {
   // Defines the alternative FPS from a throttled thread.
   let currentFPS: number = fps;
@@ -226,7 +226,7 @@ export function requestAnimationThread(
           try {
             if (fpsInterval && delta > fpsInterval) {
               const actualFPS = Math.round(
-                1000 / (timestamp - previousTimestamp)
+                1000 / (timestamp - previousTimestamp),
               );
 
               // if (currentFPS !== actualFPS) {
@@ -310,8 +310,7 @@ export function requestAnimationThread(
               timeline.push({
                 fps: actualFPS,
                 lag,
-                multiplier: smooth(multiplier),
-                multiplierHighres: multiplier,
+                multiplier: highResolution ? multiplier : smooth(multiplier),
                 speed: currentSpeed,
                 timestamp: now,
               });
@@ -324,8 +323,7 @@ export function requestAnimationThread(
                 frame,
                 lag,
                 last,
-                multiplier: smooth(multiplier),
-                multiplierHighres: multiplier,
+                multiplier: highResolution ? multiplier : smooth(multiplier),
                 previousTimestamp,
                 speed: currentSpeed,
                 status,
