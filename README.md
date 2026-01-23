@@ -45,8 +45,6 @@ import { requestAnimationThread } from "@toolbarthomas/animation-thread"
 
 ```
 
-**Note:** Keep in mind that the behavior of this module can currently give unexpected results when using outside the browser context. A setInterval fallback could be implemented within the future.
-
 ## Usage
 
 ```js
